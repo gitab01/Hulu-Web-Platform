@@ -1,0 +1,56 @@
+# Render blueprint for the Streamline API service.
+# Create a free "Web Service" from this repo, root directory = server.
+# Configure the environment variables below in the Render dashboard (never commit real secrets).
+services:
+  - type: web
+    name: hulu-web-platform-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # set to your MongoDB Atlas connection string
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: PLAYBACK_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL
+        value: 15m
+      - key: CORS_ORIGIN
+        sync: false # your Vercel client origin, e.g. https://your-app.vercel.app
+      - key: FRONTEND_URL
+        sync: false # same Vercel origin
+      - key: API_PUBLIC_URL
+        sync: false # https://hulu-web-platform-api.onrender.com (used to build playback URLs)
+      - key: STRIPE_SECRET_KEY
+        sync: false # leave blank to run mock billing
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_BASIC
+        sync: false
+      - key: STRIPE_PRICE_PREMIUM
+        sync: false
+
+  # Optional: run the recommender nightly instead of in-process.
+  - type: cron
+    name: hulu-recommender-nightly
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm run recompute
+    schedule: "0 3 * * *"
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: NODE_ENV
+        value: production
