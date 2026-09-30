@@ -12,12 +12,12 @@ async function main() {
     console.log(`[api] billing provider: ${require('./services/billingService').isRealStripe() ? 'stripe' : 'mock'}`);
   });
 
-  // Optional in-process recommender. On Render, prefer a scheduled Cron service
-  // running `npm run recompute` nightly instead of holding a timer here.
+  // Optional in-process recommender (Render free tier has no cron). runOnce() assumes
+  // the DB is already connected and never disconnects it.
   if (config.recommender.inProcess) {
     const ms = config.recommender.intervalMinutes * 60 * 1000;
     setInterval(() => {
-      recomputeJob.run().catch((e) => console.error('[recommender]', e.message));
+      recomputeJob.runOnce().catch((e) => console.error('[recommender]', e.message));
     }, ms);
     console.log(`[api] in-process recommender every ${config.recommender.intervalMinutes}m`);
   }

@@ -10,9 +10,11 @@ const { recomputeSimilarity } = require('../services/recommendation');
  * "similar titles" lists, so a browse request never triggers a model run.
  * Run standalone (`npm run recompute`) or as a Render Cron service.
  */
-async function run() {
-  await connectDb();
-
+/**
+ * The core recompute work. Assumes the DB is already connected. Used both by the
+ * in-process interval (server.js) and the standalone CLI (run()).
+ */
+async function runOnce() {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const stats = await WatchEvent.aggregate([
     { $match: { completed: true, watchedAt: { $gte: since } } },
@@ -40,7 +42,17 @@ async function run() {
 
   const sim = await recomputeSimilarity();
   console.log('[recompute]', { stats: updates.length, ...sim });
+  return sim;
+}
 
+/**
+ * Standalone CLI entry: connect, recompute, disconnect. Run via `npm run recompute`
+ * (or a paid Render Cron service). Do NOT use this for the in-process interval —
+ * it disconnects the shared DB connection.
+ */
+async function run() {
+  await connectDb();
+  await runOnce();
   await disconnectDb();
 }
 
@@ -53,4 +65,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { run };
+module.exports = { run, runOnce };

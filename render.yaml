@@ -1,6 +1,8 @@
-# Render blueprint for the Streamline API service.
-# Create a free "Web Service" from this repo, root directory = server.
-# Configure the environment variables below in the Render dashboard (never commit real secrets).
+# Render blueprint for the Streamline API service (free tier).
+# New -> Blueprint -> select gitab01/Hulu-Web-Platform. Only MONGODB_URI needs a value;
+# everything else has a working default you can adjust later in the dashboard.
+# NOTE: Render free tier does NOT support Cron Jobs, so the recommender runs in-process
+# (see RUN_RECOMMENDER_IN_PROCESS) instead of a scheduled cron service.
 services:
   - type: web
     name: hulu-web-platform-api
@@ -14,8 +16,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # The ONLY value you must set here: your MongoDB Atlas connection string.
       - key: MONGODB_URI
-        sync: false # set to your MongoDB Atlas connection string
+        sync: false
+      # Auto-generated secrets — leave as-is.
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
@@ -24,33 +28,19 @@ services:
         generateValue: true
       - key: ACCESS_TOKEN_TTL
         value: 15m
+      # Set these to your Vercel client URL after Part 3 (they default to localhost so the
+      # API deploys and /health works immediately).
       - key: CORS_ORIGIN
-        sync: false # your Vercel client origin, e.g. https://your-app.vercel.app
+        value: http://localhost:5173
       - key: FRONTEND_URL
-        sync: false # same Vercel origin
-      - key: API_PUBLIC_URL
-        sync: false # https://hulu-web-platform-api.onrender.com (used to build playback URLs)
+        value: http://localhost:5173
+      # API_PUBLIC_URL is intentionally omitted: the app derives the playback-URL host
+      # from the incoming request (Render's own domain), so it needs no manual value.
+      # Blank Stripe key => mock billing, fully usable. Add test keys to switch to real Stripe.
       - key: STRIPE_SECRET_KEY
-        sync: false # leave blank to run mock billing
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
-      - key: STRIPE_PRICE_BASIC
-        sync: false
-      - key: STRIPE_PRICE_PREMIUM
-        sync: false
-
-  # Optional: run the recommender nightly instead of in-process.
-  - type: cron
-    name: hulu-recommender-nightly
-    runtime: node
-    plan: free
-    region: singapore
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm run recompute
-    schedule: "0 3 * * *"
-    envVars:
-      - key: MONGODB_URI
-        sync: false
-      - key: NODE_ENV
-        value: production
+        value: ""
+      # In-process recommender replaces the (paid-only) nightly cron: recomputes every 6h.
+      - key: RUN_RECOMMENDER_IN_PROCESS
+        value: "true"
+      - key: RECOMMENDER_INTERVAL_MINUTES
+        value: "360"
