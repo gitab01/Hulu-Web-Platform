@@ -56,49 +56,65 @@ export default function Subscribe() {
 
   if (entitled) {
     return (
-      <div className="container center" style={{ padding: 40 }}>
-        <h1>You’re subscribed</h1>
-        <p className="hint">Your membership is active.</p>
-        <Link to="/" className="btn btn-primary">
-          Start watching
-        </Link>
+      <div className="container">
+        <div className="notice">
+          <span className="eyebrow">Membership</span>
+          <h2>Your plan is active</h2>
+          <p>You can play any title in the catalogue. Nothing further to buy.</p>
+          <Link to="/" className="btn btn-primary btn--play">
+            Start watching
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ padding: '40px 16px', maxWidth: 760 }}>
-      <h1>Choose a plan</h1>
-      <p className="hint">
-        Billing provider:{' '}
-        <span className="badge badge--live">{provider === 'mock' ? 'Mock (no Stripe keys configured)' : 'Stripe (test mode)'}</span>
-      </p>
-      {location.pathname.endsWith('/cancel') && <p className="error">Checkout was cancelled.</p>}
-      {error && <p className="error">{error}</p>}
-
-      <div className="plan-grid">
-        {plans?.map((p) => (
-          <div className="plan" key={p.id}>
-            <h3 style={{ marginTop: 0 }}>{p.label}</h3>
-            {p.priceUsd != null && <div style={{ fontSize: 24, fontWeight: 800 }}>${p.priceUsd}/mo</div>}
-            <ul>
-              {p.features.map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-            <button className="btn btn-primary btn-block" disabled={busy === p.id} onClick={() => choose(p.id)}>
-              {busy === p.id ? 'Working…' : provider === 'mock' ? 'Activate' : 'Subscribe'}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {provider === 'mock' && (
-        <p className="hint">
-          Mock mode activates entitlement instantly so the full experience is usable without a Stripe account. Set
-          <code> STRIPE_SECRET_KEY</code> on the API to switch to real checkout.
+    <div className="container">
+      <div className="panel panel--wide">
+        <span className="eyebrow">Step 02 of 02 — choose a plan</span>
+        <h1>Choose a plan</h1>
+        <p className="hint" style={{ marginTop: 0 }}>
+          Both plans open the full catalogue. The difference is quality and how many streams run at once.
         </p>
-      )}
+
+        {location.pathname.endsWith('/cancel') && (
+          <p className="error">Checkout cancelled — nothing was charged and no plan is active yet.</p>
+        )}
+        {error && <p className="error">{error}</p>}
+
+        <div className="plan-grid">
+          {plans?.map((p) => (
+            <div className="plan" key={p.id}>
+              <h3>{p.label}</h3>
+              {p.priceUsd != null && (
+                <div className="price">
+                  ${p.priceUsd}
+                  <small>/month</small>
+                </div>
+              )}
+              <ul>
+                {p.features.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+              <button className="btn btn-primary btn-block" disabled={busy === p.id} onClick={() => choose(p.id)}>
+                {busy === p.id ? 'Setting up your plan…' : provider === 'mock' ? 'Activate plan' : 'Subscribe'}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <p className="slate">
+          Billing provider: {provider === 'mock' ? 'mock — entitlement granted instantly, no card involved' : 'Stripe test mode'}
+        </p>
+        {provider === 'mock' && (
+          <p className="hint">
+            Mock mode exists so the whole product is walkable without a Stripe account. Set <code>STRIPE_SECRET_KEY</code> on
+            the API to switch to real checkout.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

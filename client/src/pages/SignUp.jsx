@@ -29,7 +29,8 @@ export default function SignUp() {
   }
 
   return (
-    <div className="card-panel" style={{ maxWidth: 520 }}>
+    <div className="panel">
+      <span className="eyebrow">Step 01 of 02 — your details</span>
       <h1>Create your account</h1>
       <form onSubmit={onSubmit}>
         <div className="field">
@@ -48,7 +49,7 @@ export default function SignUp() {
         <GenrePicker value={genres} onChange={setGenres} />
         {error && <p className="error">{error}</p>}
         <button className="btn btn-primary btn-block" disabled={busy}>
-          {busy ? 'Creating…' : 'Continue'}
+          {busy ? 'Creating your account…' : 'Continue to plans'}
         </button>
       </form>
       <p className="hint center" style={{ marginTop: 16 }}>

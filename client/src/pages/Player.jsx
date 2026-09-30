@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { catalog, player } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { PageLoading } from '../App';
 
 const FLUSH_INTERVAL_MS = 10000;
 
@@ -156,11 +155,41 @@ export default function Player() {
     hideTimer = setTimeout(() => setControlsVisible(false), 3000);
   };
 
-  if (error && !playback) return <div className="player-wrap container center" style={{ padding: 60 }}><p className="error">{error}</p><Link to={`/title/${detail?.slug || ''}`} className="btn">Back</Link></div>;
-  if (!detail || !playback) return <div className="player-wrap"><PageLoading /></div>;
+  if (error && !playback)
+    return (
+      <div className="player-wrap">
+        <div className="player-note">
+          <h2 style={{ color: '#fff', fontSize: 24 }}>This episode will not open</h2>
+          <p>{error}</p>
+          <Link to={`/title/${detail?.slug || ''}`} className="btn btn-sm">
+            Back to the title
+          </Link>
+        </div>
+      </div>
+    );
+  if (!detail || !playback)
+    return (
+      <div className="player-wrap">
+        <div className="player-note">
+          <span className="ep">Opening playback link…</span>
+        </div>
+      </div>
+    );
 
   return (
     <div className="player-wrap" onMouseMove={bumpControls}>
+      <div className="player-bar">
+        <div>
+          <div className="title">{detail.name}</div>
+          <div className="ep">
+            S{flatEps[idx]?.season} · E{flatEps[idx]?.number} — {flatEps[idx]?.title}
+          </div>
+        </div>
+        <Link to={`/title/${detail.slug}`} className="btn btn-sm">
+          Title details
+        </Link>
+      </div>
+
       <div className="player-stage">
         <video
           ref={videoRef}
@@ -173,25 +202,20 @@ export default function Player() {
         />
         {nextIn !== null && nextEp && (
           <button className="player-next" onClick={gotoNext}>
-            Next: {nextEp.title} in {nextIn}s →
+            <small>Up next in {nextIn}s</small>
+            {nextEp.title}
           </button>
         )}
       </div>
-      <div className="player-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontWeight: 700 }}>{detail.name}</div>
-          <div style={{ opacity: 0.7, fontSize: 14 }}>
-            S{flatEps[idx]?.season} · E{flatEps[idx]?.number} — {flatEps[idx]?.title}
-          </div>
-        </div>
-        <Link to={`/title/${detail.slug}`} className="btn btn-sm">
-          Details
-        </Link>
-      </div>
-      <div style={{ padding: '0 16px 24px', color: '#fff' }}>
-        {error && <p style={{ color: '#ff8a94' }}>{error}</p>}
+
+      <div className="player-note">
+        {error && <p className="error">{error}</p>}
+        <p>
+          Progress saves every 10 seconds and whenever you pause, seek or leave the page. Playback stays available while this
+          signed link is valid; your plan is checked again when you open the next title.
+        </p>
         <button className="btn btn-sm" onClick={() => refreshEntitlement()}>
-          Refresh subscription status
+          Re-check my plan
         </button>
       </div>
     </div>

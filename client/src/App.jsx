@@ -39,14 +39,29 @@ function RequireEntitlement() {
 }
 
 export function PageLoading() {
-  return <div className="container" style={{ padding: '80px 16px', textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>;
+  return (
+    <div className="container" style={{ paddingTop: 'clamp(20px, 4vw, 36px)' }} role="status" aria-live="polite">
+      <div className="skel skel-head" style={{ width: 220 }} />
+      <div className="skel-row">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div className="skel-card" key={i}>
+            <div className="skel skel-poster" />
+            <div className="skel skel-line" style={{ width: '65%' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <Navbar />
-      <main style={{ flex: 1 }}>
+      <main id="main" style={{ flex: 1 }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<SearchPage />} />
