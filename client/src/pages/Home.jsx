@@ -97,7 +97,7 @@ export default function Home() {
     );
   }
 
-  if (!rows.length) {
+  if (!rows.some((r) => r?.items?.length)) {
     return (
       <div className="container">
         <div className="notice">
