@@ -28,12 +28,12 @@ services:
         generateValue: true
       - key: ACCESS_TOKEN_TTL
         value: 15m
-      # Set these to your Vercel client URL after Part 3 (they default to localhost so the
-      # API deploys and /health works immediately).
+      # The deployed Vercel client origin. Change here (and re-apply the blueprint) if you
+      # rename the Vercel project, otherwise leave as-is.
       - key: CORS_ORIGIN
-        value: http://localhost:5173
+        value: https://client-orpin-xi.vercel.app
       - key: FRONTEND_URL
-        value: http://localhost:5173
+        value: https://client-orpin-xi.vercel.app
       # API_PUBLIC_URL is intentionally omitted: the app derives the playback-URL host
       # from the incoming request (Render's own domain), so it needs no manual value.
       # Blank Stripe key => mock billing, fully usable. Add test keys to switch to real Stripe.
