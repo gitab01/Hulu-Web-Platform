@@ -26,22 +26,17 @@ export default function TitleCard({ item }) {
     <Link className="card" to={to}>
       <CoverArt item={item} size="card" />
       {pct !== null && (
-        <div className="card-progress">
-          <span style={{ width: `${pct}%` }} />
-        </div>
+        <>
+          <div className="card-progress">
+            <span style={{ width: `${pct}%` }} />
+          </div>
+          <div className="card-meta">
+            <div className="card-sub">
+              <span className="resume">Resume at {clock(item.progress.positionSec)}</span>
+            </div>
+          </div>
+        </>
       )}
-      <div className="card-meta">
-        <div className="card-title">{item.name}</div>
-        <div className="card-sub">
-          {pct !== null ? (
-            <span className="resume">Resume at {clock(item.progress.positionSec)}</span>
-          ) : (
-            <span>
-              {item.year} · {(item.genres || []).slice(0, 2).join(', ')}
-            </span>
-          )}
-        </div>
-      </div>
     </Link>
   );
 }

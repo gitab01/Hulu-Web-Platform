@@ -211,15 +211,22 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 }
 .cover-img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; background: var(--ink); }
 .cover--card .cover-mono { font-size: clamp(30px, 4vw, 46px); }
+.cover--ep .cover-mono { display: none; }
+.cover--detail .cover-name { display: none; }
+.cover--ep .cover-name { display: none; }
+.cover--ep { justify-content: center; }
+.cover--ep .cover-foot { justify-content: flex-start; }
 
 /* ---- Rows ---- */
 .row { padding: clamp(20px, 3vw, 34px) 0; }
 .row-head {
   display: flex; align-items: flex-end; gap: 16px; margin-bottom: 14px;
 }
-.row-head h2 { font-size: clamp(17px, 1.7vw, 21px); letter-spacing: -0.02em; }
+.row-head h2 { font-size: clamp(17px, 1.7vw, 21px); letter-spacing: -0.02em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-head .note { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.04em; }
+.row-head > div:first-child { min-width: 0; }
 .row-head .spacer { flex: 1; }
+.row-head .eyebrow { white-space: nowrap; }
 .row-arrows { display: flex; gap: 6px; }
 .arrow {
   width: 30px; height: 30px; border: 1px solid var(--rule); border-radius: 999px;
@@ -246,8 +253,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 .card-progress { height: 3px; background: var(--rule); }
 .card-progress > span { display: block; height: 100%; background: var(--signal); }
 .card-meta { padding: 11px 13px 13px; }
-.card-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-sub { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: 4px; letter-spacing: 0.02em; }
+.card-sub { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.02em; }
 .card-sub .resume { color: var(--signal); }
 
 /* ---- Skeletons: fixed height so nothing shifts ---- */
@@ -370,8 +376,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 }
 .player-bar .title { font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 .player-bar .ep { font-family: var(--mono); font-size: 12px; color: rgba(255, 255, 255, 0.65); margin-top: 4px; letter-spacing: 0.04em; }
-.player-bar .btn { border-color: rgba(255, 255, 255, 0.3); color: var(--paper); }
-.player-bar .btn:hover { border-color: var(--paper); }
+.player-bar .btn, .player-note .btn {
+  background: transparent; border-color: rgba(255, 255, 255, 0.35); color: var(--paper);
+}
+.player-bar .btn:hover, .player-note .btn:hover { background: var(--paper); color: var(--ink); border-color: var(--paper); }
 .player-next {
   position: absolute; right: clamp(12px, 3vw, 32px); bottom: clamp(12px, 3vw, 32px);
   background: var(--paper); color: var(--ink); border-radius: var(--radius);
@@ -381,7 +389,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 .player-note { max-width: 1400px; margin: 0 auto; padding: 18px var(--gutter) 40px; color: rgba(255, 255, 255, 0.7); font-size: 13px; }
 .player-note .error { color: #ff8a94; }
 .player-note .ep { font-family: var(--mono); font-size: 12px; color: rgba(255, 255, 255, 0.65); letter-spacing: 0.04em; }
-.player-note .btn { border-color: rgba(255, 255, 255, 0.3); color: var(--paper); }
 
 /* ---- Footer ---- */
 footer { border-top: 1px solid var(--rule); margin-top: clamp(36px, 8vw, 72px); padding: 28px 0 40px; color: var(--graphite); font-size: 13px; }
@@ -415,8 +422,8 @@ footer a:hover { color: var(--ink); text-decoration: underline; text-underline-o
   }
   .nav-sheet .input { margin: 12px 0 4px; }
   .row-arrows { display: none; }
-  :root { --card-w: 74vw; }
-  .hero-copy h1 { font-size: clamp(32px, 10vw, 46px); }
+  :root { --card-w: 62vw; }
+  .hero-copy h1 { font-size: clamp(30px, 8.6vw, 40px); }
   .plan { border-right: 0; border-bottom: 1px solid var(--rule); }
   .stat { border-right: 0; border-bottom: 1px solid var(--rule); }
 }
