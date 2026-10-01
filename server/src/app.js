@@ -20,8 +20,10 @@ app.use(
   cors({
     origin: (origin, cb) => {
       // Allow same-origin/no-origin (curl, health checks) and configured origins.
+      // An unlisted origin gets no CORS headers rather than an error, so it fails
+      // as a browser CORS block instead of looking like a server fault.
       if (!origin || config.corsOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error('Origin not allowed by CORS'));
+      return cb(null, false);
     },
     credentials: true,
   })
