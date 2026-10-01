@@ -50,8 +50,11 @@ async function tryRefresh() {
     accessToken = data.accessToken;
     store.refresh = data.refreshToken;
     return true;
-  } catch {
-    clearSession();
+  } catch (err) {
+    // A rate limit, server fault or dropped connection leaves the token valid — keep it
+    // and retry on the next call. Only the API rejecting the token ends the session.
+    const rejected = err.status && err.status < 500 && err.status !== 429;
+    if (rejected) clearSession();
     return false;
   }
 }
