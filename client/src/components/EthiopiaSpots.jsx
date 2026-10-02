@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 
 /* Short spots that introduce the country to a viewer who has never had it
    explained, one photograph each, named for what the photographs show. The reel
-   opens in the Afar depression — Dinkinesh in her museum case, the lava lake of
-   Erta Ale, the salt caravan still walking out — and then works forward in time:
-   the stelae at Aksum, the Addis Ababa skyline at dusk, pilgrims walking to
+   opens on the country itself — the stelae at Aksum, its own alphabet and its own
+   clock — then goes down to the Afar depression: Dinkinesh in her museum case, the
+   lava lake of Erta Ale, the salt caravan still walking out. From there it works
+   forward in time: the Addis Ababa skyline at dusk, pilgrims walking to
    Irreecha, the Meskel bonfire, girls keeping Ashenda, Lalibela by candlelight,
    the coffee ceremony and the cherry it starts from, a walia ibex in the Simien,
    Dallol, the Anwar Mosque in Addis, a dance in the south, feast baskets,
@@ -20,6 +21,14 @@ import { Link } from 'react-router-dom';
    letterboxes rather than crops, so nobody's face is cut out of a photograph to
    fit an aspect ratio. */
 const SPOTS = [
+  {
+    word: 'ኢትዮጵያ',
+    title: 'Its own alphabet, its own time',
+    body: 'The stelae at Aksum stood here before Rome had an empire, and Ge’ez — the language carved beside them — is still the liturgical tongue of the churches. The country kept its own calendar, its own clock and its own flags, and fought the battle of Adwa in 1896 on its own ground.',
+    img: '/ads/aksum-stelae.jpg',
+    alt: 'Granite stelae rising from the excavated stelae field at Aksum under a blue sky.',
+    cta: { to: '/subscribe', label: 'See the plans' },
+  },
   {
     word: 'ድንቅ ነሽ',
     title: 'Three million years, in one case',
@@ -43,14 +52,6 @@ const SPOTS = [
     img: '/ads/afar-salt-caravan.jpg',
     alt: 'A line of laden camels walking across a wet salt flat under a clear blue sky, a man in white walking at the head of the train.',
     cta: { to: '/search', label: 'Browse the catalogue' },
-  },
-  {
-    word: 'ኢትዮጵያ',
-    title: 'Its own alphabet, its own time',
-    body: 'The stelae at Aksum stood here before Rome had an empire, and Ge’ez — the language carved beside them — is still the liturgical tongue of the churches. The country kept its own calendar, its own clock and its own flags, and fought the battle of Adwa in 1896 on its own ground.',
-    img: '/ads/aksum-stelae.jpg',
-    alt: 'Granite stelae rising from the excavated stelae field at Aksum under a blue sky.',
-    cta: { to: '/subscribe', label: 'See the plans' },
   },
   {
     word: 'አዲስ አበባ',
