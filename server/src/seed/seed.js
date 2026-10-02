@@ -271,6 +271,13 @@ async function upsertCatalogue(docs) {
     const slug = uniqueSlug(t.slug || t.name);
     await Title.updateOne({ slug }, { $set: { ...t, slug } }, { upsert: true });
   }
+
+  // The local slate is a reviewed list, like the channels, so it syncs rather than
+  // accumulates: a title that leaves the slate must not keep its row slot. The
+  // acquired catalogue is left alone because what it holds depends on the import.
+  const localSlugs = docs.filter((t) => t.origin === 'Ethiopia').map((t) => t.slug);
+  if (localSlugs.length) await Title.deleteMany({ origin: 'Ethiopia', slug: { $nin: localSlugs } });
+
   return Title.find({});
 }
 
@@ -399,8 +406,32 @@ async function seed() {
   await disconnectDb();
 }
 
+/**
+ * Catalogue-only pass: refresh the titles and the channel list and nothing else.
+ * `seed()` above wipes users, subscriptions and watch history, which is the wrong
+ * thing to do to a live database when only the slate has changed.
+ */
+async function seedCatalogue() {
+  await connectDb();
+
+  const titles = await upsertCatalogue(await loadCatalogue());
+  const local = titles.filter((t) => t.origin === 'Ethiopia').length;
+  console.log(`[seed] ${titles.length} titles (${local} Ethiopian originals)`);
+
+  const channels = await seedChannels();
+  const localChannels = CHANNELS.filter((c) => c.country === 'Ethiopia').length;
+  console.log(`[seed] ${channels} live channels (${localChannels} Ethiopian, ${channels - localChannels} international)`);
+
+  const sim = await recomputeSimilarity();
+  console.log('[seed] similarity', sim);
+  console.log('[seed] accounts, subscriptions and watch history were left alone');
+
+  await disconnectDb();
+}
+
 if (require.main === module) {
-  seed()
+  const run = process.argv.includes('--catalogue-only') ? seedCatalogue : seed;
+  run()
     .then(() => process.exit(0))
     .catch((err) => {
       console.error('[seed] failed', err);
@@ -408,4 +439,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { seed, CATALOGUE };
+module.exports = { seed, seedCatalogue, CATALOGUE };

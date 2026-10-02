@@ -12,6 +12,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "seed": "node src/seed/seed.js",
+    "seed:catalogue": "node src/seed/seed.js --catalogue-only",
     "recompute": "node src/jobs/recomputeSimilarity.js",
     "test": "node --test \"tests/*.test.js\""
   },
