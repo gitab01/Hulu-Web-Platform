@@ -17,9 +17,13 @@
  * @AmharaMediaCorporation, @OBNoromiyaa and @ShegerFM1021Radio. Confirm against
  * the broadcaster's own description and handle before accepting an id.
  *
- * `logoUrl` is the broadcaster's own channel avatar, resolved from the same page.
- * The stream itself is theirs and embedded from their channel, so nothing is
- * re-hosted, proxied or scraped on our side.
+ * `logoUrl` is the broadcaster's mark, from one of two places: a free-licensed
+ * wordmark on Wikimedia Commons when one exists (it scales, and a channel icon is
+ * sometimes just a bare letter), otherwise the avatar the broadcaster uploaded to
+ * its own channel. Wikipedia's fair-use thumbnails are not hot-linked — Commons
+ * files are the ones we are allowed to serve. A blank logoUrl falls back to the
+ * channel name. The stream itself is the broadcaster's and is embedded from their
+ * channel, so nothing is re-hosted, proxied or scraped on our side.
  *
  * To add a channel: give it a slug, a category and the broadcaster's channel id.
  * `homepages` are intentionally empty rather than invented; fill one in when you
@@ -190,7 +194,7 @@ const CHANNELS = [
     category: 'News',
     country: 'International',
     youtubeChannelId: 'UCSrZ3UV4jOidv8ppoVuvW9Q',
-    logoUrl: 'https://yt3.googleusercontent.com/8MyE7rxMBfLZOpYkJVJFm1C8I9jxbceBbOJS9OhrepZMVGxGV-OEJU-UdLOew_qR_l-knETWeu4=s240-c-k-no',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3c/Euronews_Logo_2025.svg',
     description: 'European news desk, published in multiple languages.',
     displayRank: 21,
   },
@@ -210,7 +214,7 @@ const CHANNELS = [
     category: 'News',
     country: 'International',
     youtubeChannelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg',
-    logoUrl: 'https://yt3.googleusercontent.com/ytc/AIdro_n_QTJ5-GLGnftQFkb7Kp36W2eBH3H-7ZqTQxzFkkqGrIE=s240-c-k-no',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/France_24_logo_%282013%29.svg',
     description: 'French public news channel in English.',
     displayRank: 23,
   },
@@ -240,7 +244,7 @@ const CHANNELS = [
     category: 'Sports',
     country: 'International',
     youtubeChannelId: 'UCwNqHDsnBCKT-olwJwIFyfg',
-    logoUrl: 'https://yt3.googleusercontent.com/TzefJpalKWO0akoDZBlYLwAsgYLhK8OTkdclGr8KHW0V8EIi6uhfQZEpaB2Ln3hKjOgYjgiS4w=s240-c-k-no',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ee/Fox_Sports_wordmark_logo.svg',
     description: 'US sports coverage, analysis and highlights.',
     displayRank: 31,
   },
@@ -250,7 +254,7 @@ const CHANNELS = [
     category: 'Sports',
     country: 'International',
     youtubeChannelId: 'UCJ5v_MCY6GNUBTO8-D3XoAg',
-    logoUrl: 'https://yt3.googleusercontent.com/ytc/AIdro_muzDjR0hfGdlXBS-2A8NfR-Q9e-PO96K-gxrm2i1jSStI7=s240-c-k-no',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c4/WWE_official_logo.svg',
     description: 'Weekly wrestling events and archive shows.',
     displayRank: 32,
   },
@@ -260,7 +264,7 @@ const CHANNELS = [
     category: 'Movies',
     country: 'International',
     youtubeChannelId: 'UC7lsDuzvWA85r2UFyd729oQ',
-    logoUrl: 'https://yt3.googleusercontent.com/ytc/AIdro_kZtxye6Wed18qF00K9XolKRRehXaHMAnqOXdbdc2xw_A=s240-c-k-no',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/46/Filmrise.svg',
     description: 'Feature films from an ad-supported free library, scheduled around the clock.',
     displayRank: 40,
   },
@@ -320,7 +324,7 @@ const CHANNELS = [
     category: 'Kids',
     country: 'International',
     youtubeChannelId: 'UCrNnk0wFBnCS1awGjq_ijGQ',
-    logoUrl: 'https://yt3.googleusercontent.com/ZBcGbfxSEOigEe07nPd5AsSrYRO9NLqyxBZ1rGLtFC4Fr6eUqoL5D97U_aHLN4wO-p66Q7sO0g=s240-c-k-no',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e3/PBS_Kids_logo_%282022%29.svg',
     description: 'Children’s programming from the US public broadcaster.',
     displayRank: 60,
   },
