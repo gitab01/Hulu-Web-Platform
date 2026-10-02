@@ -15,7 +15,9 @@ export default function Footer() {
         </div>
         <div>
           <span className="eyebrow">Stack</span>
-          <p className="slate">React · Vite · React Router · Node · Express · Mongoose · MongoDB Atlas · Stripe</p>
+          <p className="slate">
+            React · Vite · React Router · Node · Express · Mongoose · MongoDB Atlas · Stripe · TMDB
+          </p>
         </div>
         <div>
           <span className="eyebrow">Pages</span>
@@ -26,7 +28,11 @@ export default function Footer() {
         </div>
         <div>
           <span className="eyebrow">Content</span>
-          <p className="slate">All titles, artwork and copy are fictional and original. Previews are public-domain sample clips.</p>
+          <p className="slate">
+            Titles, artwork and synopses are real metadata imported from The Movie Database at seed time; the video itself is
+            public-domain stand-in footage, because the catalogue carries no licensed streams. This product uses the TMDB API
+            but is not endorsed or certified by TMDB.
+          </p>
         </div>
       </div>
     </footer>

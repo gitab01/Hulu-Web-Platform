@@ -8,6 +8,8 @@ const episodeSchema = new mongoose.Schema(
     title: { type: String, required: true },
     synopsis: { type: String, default: '' },
     durationSec: { type: Number, default: 0 },
+    // Public image CDN link for the episode still (TMDB import). Display only.
+    stillUrl: { type: String, default: '' },
     // In production this is an origin path to sharded media segments; it is NEVER
     // returned to the client directly — playback goes through a signed URL.
     mediaUrl: { type: String, required: true },
@@ -49,6 +51,9 @@ const titleSchema = new mongoose.Schema(
 
     // Rolling popularity score (recent completions). Used by Trending + cold start.
     popularity: { type: Number, default: 0, index: true },
+    // Imported market signal (TMDB popularity). Owns a separate field because
+    // `popularity` above is rewritten by the nightly behaviour job.
+    externalPopularity: { type: Number, default: 0, index: true },
     completedLast30d: { type: Number, default: 0 },
   },
   { versionKey: false }

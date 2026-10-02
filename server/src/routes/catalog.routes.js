@@ -3,23 +3,36 @@
 const express = require('express');
 const Title = require('../models/Title');
 const WatchEvent = require('../models/WatchEvent');
+const Channel = require('../models/Channel');
 const { optionalAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/error');
-const { titleSummary, titleDetail } = require('../utils/serialize');
+const { titleSummary, titleDetail, channelSummary, channelDetail } = require('../utils/serialize');
 const recs = require('../services/recommendation');
 const rowCache = require('../services/rowCache');
 
 const router = express.Router();
 const ROW_TTL = 30 * 1000; // short: browse is read-heavy and repeatable
 
+/**
+ * Live channels are listed without an entitlement check on purpose: the stream is
+ * the broadcaster's own public broadcast, not media we host, so the signed-segment
+ * path that gates the VOD catalogue does not apply.
+ */
+const channelsAll = rowCache.wrap('channels:all', 60 * 1000, async () => {
+  const rows = await Channel.find({ active: true }).sort({ displayRank: 1, name: 1 });
+  return rows.map(channelSummary);
+});
+
 const trendingRow = rowCache.wrap('row:trending', ROW_TTL, async () => {
-  const rows = await Title.find({}).sort({ popularity: -1, completedLast30d: -1 }).limit(20);
+  // Our own completions rank first; the imported market signal breaks the tie for
+  // titles nobody has watched yet, so a fresh catalogue still orders sensibly.
+  const rows = await Title.find({}).sort({ popularity: -1, externalPopularity: -1, completedLast30d: -1 }).limit(20);
   return rows.map(titleSummary);
 });
 
 const newReleasesRow = rowCache.wrap('row:new', ROW_TTL, async () => {
-  const rows = await Title.find({}).sort({ year: -1, createdAt: -1 }).limit(20);
+  const rows = await Title.find({}).sort({ year: -1, externalPopularity: -1, createdAt: -1 }).limit(20);
   return rows.map(titleSummary);
 });
 
@@ -148,6 +161,42 @@ router.get(
     const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     const rows = await Title.find({ $or: [{ name: rx }, { genres: rx }] }).limit(24);
     res.json({ results: rows.map(titleSummary) });
+  })
+);
+
+router.get(
+  '/channels',
+  apiLimiter,
+  asyncHandler(async (req, res) => {
+    const all = await channelsAll();
+    const category = String(req.query.category || '').trim();
+    const kind = String(req.query.kind || '').trim();
+    const q = String(req.query.q || '').trim().toLowerCase();
+
+    let items = all;
+    if (category && category !== 'All') items = items.filter((c) => c.category === category);
+    if (kind === 'tv' || kind === 'radio') items = items.filter((c) => c.kind === kind);
+    if (q) items = items.filter((c) => `${c.name} ${c.country} ${c.language}`.toLowerCase().includes(q));
+
+    res.json({
+      categories: ['All', ...Channel.CATEGORIES],
+      kinds: ['tv', 'radio'],
+      countries: [...new Set(all.map((c) => c.country))],
+      channels: items,
+    });
+  })
+);
+
+router.get(
+  '/channels/:slug',
+  apiLimiter,
+  asyncHandler(async (req, res) => {
+    const doc = await Channel.findOne({ slug: req.params.slug, active: true });
+    if (!doc) return res.status(404).json({ error: { code: 'not_found', message: 'Channel not found' } });
+
+    const all = await channelsAll();
+    const related = all.filter((c) => c.slug !== doc.slug && c.category === doc.category).slice(0, 8);
+    res.json({ channel: channelDetail(doc), related });
   })
 );
 

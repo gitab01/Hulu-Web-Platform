@@ -1,12 +1,25 @@
 'use strict';
 
+/**
+ * Seed the catalogue, demo accounts and watch history.
+ *
+ * With TMDB_API_KEY set, the catalogue is imported from The Movie Database: real
+ * titles, official artwork, overviews, per-episode names and runtimes. Without a
+ * key it falls back to the invented catalogue below, so a fresh clone seeds with no
+ * accounts at all. Either way the media is public-domain stand-in footage — TMDB
+ * publishes metadata, not streams.
+ */
+
 const { connectDb, disconnectDb } = require('../config/db');
 const User = require('../models/User');
 const Title = require('../models/Title');
 const Subscription = require('../models/Subscription');
 const WatchEvent = require('../models/WatchEvent');
+const Channel = require('../models/Channel');
+const { CHANNELS } = require('../data/channels');
 const config = require('../config');
 const { recomputeSimilarity } = require('../services/recommendation');
+const tmdb = require('../services/tmdb');
 
 // Public domain sample clips from Google's open test bucket, used as stand-in
 // media so the player actually plays something without any licensed content.
@@ -26,8 +39,29 @@ const SAMPLE = [
   'WhatCarCanYouGetForAGrand.mp4',
 ];
 
+// The longer open films stand in for features; the short clips keep an episode list
+// watchable end to end.
+const FEATURES = ['BigBuckBunny.mp4', 'Sintel.mp4', 'TearsOfSteel.mp4', 'ElephantsDream.mp4'];
+const CLIPS = [
+  'ForBiggerBlazes.mp4',
+  'ForBiggerEscapes.mp4',
+  'ForBiggerFun.mp4',
+  'ForBiggerJoyrides.mp4',
+  'ForBiggerMeltdowns.mp4',
+  'SubaruOutbackOnStreetAndDirt.mp4',
+  'VolkswagenGTIReview.mp4',
+  'WeAreGoingOnBullrun.mp4',
+  'WhatCarCanYouGetForAGrand.mp4',
+];
+
 function media(name) {
   return `${config.mediaBaseUrl}/${name}`;
+}
+
+/** Media for an imported title: features get a long clip, episodes rotate short ones. */
+function mediaFor(kind, index) {
+  const pool = kind === 'movie' ? FEATURES : CLIPS;
+  return media(pool[index % pool.length]);
 }
 
 // Original, invented titles (not real shows) mapped across the genre vocabulary.
@@ -180,11 +214,53 @@ const CATALOGUE = [
   },
 ];
 
-async function upsertCatalogue() {
-  for (const t of CATALOGUE) {
-    await Title.updateOne({ slug: t.slug }, { $set: t }, { upsert: true });
+/** Real titles when a key is configured, otherwise the invented catalogue. */
+async function loadCatalogue() {
+  if (!tmdb.enabled()) {
+    console.log('[seed] TMDB_API_KEY is not set — using the built-in fictional catalogue');
+    console.log('[seed] set TMDB_API_KEY (free at themoviedb.org) to import real titles and artwork');
+    return CATALOGUE;
+  }
+
+  try {
+    const docs = await tmdb.buildCatalogue({ mediaFor });
+    if (docs.length < 8) {
+      console.warn(`[seed] TMDB returned only ${docs.length} usable titles — seeding the fictional catalogue instead`);
+      return CATALOGUE;
+    }
+    const films = docs.filter((d) => d.type === 'movie').length;
+    console.log(`[seed] TMDB import: ${docs.length} titles (${films} films, ${docs.length - films} series)`);
+    return docs;
+  } catch (err) {
+    console.warn(`[seed] TMDB import failed (${err.message}) — seeding the fictional catalogue instead`);
+    return CATALOGUE;
+  }
+}
+
+async function upsertCatalogue(docs) {
+  const taken = new Set();
+  const uniqueSlug = (base) => {
+    let slug = base || 'title';
+    let n = 2;
+    while (taken.has(slug)) slug = `${base}-${n++}`;
+    taken.add(slug);
+    return slug;
+  };
+
+  for (const t of docs) {
+    const slug = uniqueSlug(t.slug || t.name);
+    await Title.updateOne({ slug }, { $set: { ...t, slug } }, { upsert: true });
   }
   return Title.find({});
+}
+
+/** Live TV channels come from a reviewed list, not an API, so this is a straight sync. */
+async function seedChannels() {
+  for (const c of CHANNELS) {
+    await Channel.updateOne({ slug: c.slug }, { $set: c }, { upsert: true });
+  }
+  await Channel.deleteMany({ slug: { $nin: CHANNELS.map((c) => c.slug) } });
+  return Channel.countDocuments({});
 }
 
 async function makeUser(email, password, displayName, genres) {
@@ -197,16 +273,85 @@ async function makeUser(email, password, displayName, genres) {
   return user;
 }
 
+const DEMO_PREFS = ['Sci-Fi', 'Thriller', 'Crime'];
+const MAYA_PREFS = ['Drama', 'Crime', 'Comedy'];
+
+const byMarketRank = (a, b) => (b.externalPopularity || 0) - (a.externalPopularity || 0) || (b.popularity || 0) - (a.popularity || 0);
+
+/** Titles matching declared genres first, then the rest of the catalogue. */
+function rankedFor(titles, prefs) {
+  const liked = titles.filter((t) => (t.genres || []).some((g) => prefs.includes(g))).sort(byMarketRank);
+  return [...liked, ...titles.filter((t) => !liked.includes(t))];
+}
+
+/**
+ * Stand-in clips are minutes long while a real episode runs ~45 minutes, so a true
+ * percentage would put "Resume at" past the end of the footage. Positions stay in a
+ * short window: enough to read as part-watched, small enough to be resumable.
+ */
+function partialPosition(durationSec) {
+  const dur = durationSec > 0 ? durationSec : 600;
+  return Math.min(Math.max(Math.round(dur * 0.3), 120), Math.max(dur - 30, 120));
+}
+
+function eventFor(user, title, { episodeIndex = 0, completed = false, daysAgo }) {
+  const season = title.seasons[0];
+  const episode = season.episodes[Math.min(episodeIndex, season.episodes.length - 1)];
+  const durationSec = episode.durationSec || 600;
+  return {
+    userId: user._id,
+    titleId: title._id,
+    episodeId: episode._id,
+    season: season.season,
+    episode: episode.number,
+    positionSec: completed ? durationSec : partialPosition(durationSec),
+    durationSec,
+    completed,
+    plays: 1,
+    watchedAt: new Date(Date.now() - daysAgo * 24 * 3600 * 1000),
+  };
+}
+
+/**
+ * Watch history is planned from the titles that actually landed, so the same script
+ * works for imported and invented catalogues. Two accounts with different tastes,
+ * each with one unfinished episode for Continue Watching, plus completions shared
+ * between them so item-item similarity has real co-watch signal.
+ */
+function planEvents(titles, { demo, maya }) {
+  const demoPicks = rankedFor(titles, DEMO_PREFS).slice(0, 4);
+  const mayaPicks = rankedFor(titles, MAYA_PREFS).slice(0, 4);
+  const shared = demoPicks.slice(0, 2).filter((t) => String(t._id) !== String(mayaPicks[0]._id));
+
+  return [
+    eventFor(demo, demoPicks[0], { daysAgo: 1 }),
+    ...demoPicks.slice(1).map((t, i) => eventFor(demo, t, { completed: true, daysAgo: 4 + i * 2 })),
+    eventFor(maya, mayaPicks[0], { episodeIndex: 1, daysAgo: 2 }),
+    ...mayaPicks.slice(1).map((t, i) => eventFor(maya, t, { completed: true, daysAgo: 5 + i * 2 })),
+    ...shared.map((t, i) => eventFor(maya, t, { completed: true, daysAgo: 3 + i * 5 })),
+  ];
+}
+
 async function seed() {
   await connectDb();
   console.log('[seed] wiping collections');
-  await Promise.all([Title.deleteMany({}), User.deleteMany({}), Subscription.deleteMany({}), WatchEvent.deleteMany({})]);
+  await Promise.all([
+    Title.deleteMany({}),
+    User.deleteMany({}),
+    Subscription.deleteMany({}),
+    WatchEvent.deleteMany({}),
+    Channel.deleteMany({}),
+  ]);
 
-  const titles = await upsertCatalogue();
+  const titles = await upsertCatalogue(await loadCatalogue());
   console.log(`[seed] ${titles.length} titles`);
 
-  const demo = await makeUser('demo@hulu.test', 'password123', 'Demo Viewer', ['Sci-Fi', 'Thriller', 'Crime']);
-  const maya = await makeUser('maya@hulu.test', 'password123', 'Maya', ['Drama', 'Crime', 'Comedy']);
+  const channels = await seedChannels();
+  const local = CHANNELS.filter((c) => c.country === 'Ethiopia').length;
+  console.log(`[seed] ${channels} live channels (${local} Ethiopian, ${channels - local} international)`);
+
+  const demo = await makeUser('demo@hulu.test', 'password123', 'Demo Viewer', DEMO_PREFS);
+  const maya = await makeUser('maya@hulu.test', 'password123', 'Maya', MAYA_PREFS);
   await makeUser('sam@hulu.test', 'password123', 'Sam', []); // cold-start account, no genres
 
   // Active mock subscriptions for demo + maya.
@@ -216,48 +361,9 @@ async function seed() {
     { userId: maya._id, plan: 'basic', status: 'active', currentPeriodEnd: end },
   ]);
 
-  // Watch history so Continue Watching, Trending and item-item similarity have signal.
-  const findTitle = (slug) => titles.find((t) => t.slug === slug);
-  const ev = (user, slug, epi, positionSec, completed, daysAgo) => {
-    const t = findTitle(slug);
-    const season = t.seasons[0];
-    const epObj = season.episodes[epi] || season.episodes[0];
-    return {
-      userId: user._id,
-      titleId: t._id,
-      episodeId: epObj._id,
-      season: season.season,
-      episode: epObj.number,
-      positionSec,
-      durationSec: epObj.durationSec,
-      completed,
-      plays: 1,
-      watchedAt: new Date(Date.now() - daysAgo * 24 * 3600 * 1000),
-    };
-  };
-
-  const events = [
-    // demo: sci-fi/thriller lean
-    ev(demo, 'neon-hollow', 1, 120, false, 1), // in progress -> continue watching
-    ev(demo, 'blackout-protocol', 0, 830, true, 4),
-    ev(demo, 'the-long-con', 0, 390, true, 6),
-    ev(demo, 'the-quiet-floor', 0, 360, true, 8),
-    // maya: drama/crime/comedy lean
-    ev(maya, 'paper-empire', 0, 200, false, 2),
-    ev(maya, 'paper-empire', 1, 400, true, 5),
-    ev(maya, 'the-understudy', 0, 880, true, 7),
-    ev(maya, 'greener-pastures', 0, 260, true, 9),
-    // shared completions to create co-watch signal between neon-hollow & blackout-protocol
-    ev(maya, 'blackout-protocol', 0, 830, true, 3),
-    ev(maya, 'neon-hollow', 0, 340, true, 10),
-  ];
-
+  const events = planEvents(titles, { demo, maya });
   for (const e of events) {
-    await WatchEvent.updateOne(
-      { userId: e.userId, episodeId: e.episodeId },
-      { $set: e },
-      { upsert: true }
-    );
+    await WatchEvent.updateOne({ userId: e.userId, episodeId: e.episodeId }, { $set: e }, { upsert: true });
   }
   console.log(`[seed] ${events.length} watch events`);
 

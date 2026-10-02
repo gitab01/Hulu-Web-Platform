@@ -10,6 +10,8 @@ import SignUp from './pages/SignUp';
 import Subscribe from './pages/Subscribe';
 import Account from './pages/Account';
 import SearchPage from './pages/SearchPage';
+import LiveTV from './pages/LiveTV';
+import ChannelPage from './pages/ChannelPage';
 import NotFound from './pages/NotFound';
 
 // The player is route-split so its bundle never lands in the browse experience.
@@ -66,6 +68,8 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/title/:slug" element={<TitlePage />} />
+          <Route path="/live" element={<LiveTV />} />
+          <Route path="/live/:slug" element={<ChannelPage />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/subscribe" element={<RequireAuth><Subscribe /></RequireAuth>} />

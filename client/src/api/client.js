@@ -110,6 +110,15 @@ export const catalog = {
   title: (slug) => api(`/catalog/titles/${slug}`),
   byId: (id) => api(`/catalog/titles/id/${id}`),
   search: (q) => api(`/catalog/search?q=${encodeURIComponent(q)}`),
+  channels: ({ category, kind, q } = {}) => {
+    const p = new URLSearchParams();
+    if (category && category !== 'All') p.set('category', category);
+    if (kind) p.set('kind', kind);
+    if (q) p.set('q', q);
+    const qs = p.toString();
+    return api(`/catalog/channels${qs ? `?${qs}` : ''}`);
+  },
+  channel: (slug) => api(`/catalog/channels/${slug}`),
 };
 
 export const player = {

@@ -98,10 +98,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 }
 .nav-links a:hover { color: var(--ink); }
 .nav-links a.active { color: var(--ink); border-bottom-color: var(--ink); }
-.nav-spacer { flex: 1; }
-.nav-actions { display: flex; align-items: center; gap: 12px; }
-.nav-search { position: relative; }
-.nav-search .input { width: 210px; padding-left: 34px; }
+.nav-spacer { flex: 1; min-width: 0; }
+.nav-actions { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+.nav-search { position: relative; min-width: 0; }
+.nav-search .input { width: clamp(110px, 20vw, 210px); padding-left: 34px; }
 .nav-search::before {
   content: ''; position: absolute; left: 13px; top: 50%; width: 9px; height: 9px;
   transform: translateY(-60%) rotate(45deg);
@@ -179,9 +179,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 .hero-facts dt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
 .hero-facts dd { margin: 3px 0 0; font-size: 14px; font-weight: 600; }
 
-/* ---- Generated cover slab ----
-   The catalogue carries no artwork, so covers are typeset from metadata:
-   black field, stretched display title, mono slate line. */
+/* ---- Covers: artwork, or a generated slab when a title has none ----
+   Seeded titles carry TMDB backdrops and posters; the slab typesets the
+   metadata instead: black field, stretched display title, mono slate line. */
 .cover {
   position: relative; background: var(--ink); color: var(--paper);
   border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column;
@@ -210,6 +210,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
   color: rgba(255, 255, 255, 0.72);
 }
 .cover-img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; background: var(--ink); }
+/* Slate chip for a cover that is a photo rather than a typeset slab. */
+.cover-tag {
+  position: absolute; left: 10px; bottom: 10px; z-index: 1;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--paper); background: rgba(0, 0, 0, 0.72); padding: 3px 7px; border-radius: 2px;
+}
 .cover--card .cover-mono { font-size: clamp(30px, 4vw, 46px); }
 .cover--ep .cover-mono { display: none; }
 .cover--detail .cover-name { display: none; }
@@ -253,7 +259,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 .card-progress { height: 3px; background: var(--rule); }
 .card-progress > span { display: block; height: 100%; background: var(--signal); }
 .card-meta { padding: 11px 13px 13px; }
+.card-title {
+  font-family: var(--display); font-weight: 700; font-size: 14px; line-height: 1.2;
+  letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .card-sub { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.02em; }
+.card-title + .card-sub { margin-top: 4px; }
 .card-sub .resume { color: var(--signal); }
 
 /* ---- Skeletons: fixed height so nothing shifts ---- */
@@ -390,6 +401,109 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 .player-note .error { color: #ff8a94; }
 .player-note .ep { font-family: var(--mono); font-size: 12px; color: rgba(255, 255, 255, 0.65); letter-spacing: 0.04em; }
 
+/* ---- Live TV: a programme guide, not a poster wall ----
+   Channel identity is the tile itself, so the grid stays dense and quiet.
+   Selected filters use ink like the rest of the system; no signal colour here. */
+.live { padding: clamp(20px, 3vw, 34px) 0 clamp(30px, 6vw, 60px); }
+.live-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 46ch);
+  gap: clamp(16px, 3vw, 40px); align-items: end;
+  padding-bottom: clamp(18px, 3vw, 26px); border-bottom: 1px solid var(--rule);
+}
+.live-head h1 {
+  font-size: clamp(30px, 4.6vw, 54px); line-height: 0.95; letter-spacing: -0.03em;
+  font-variation-settings: 'wdth' 115, 'wght' 800; margin-top: 12px;
+}
+.live-head .synopsis { color: var(--graphite); max-width: 60ch; margin: 12px 0 0; }
+.live-note { color: var(--graphite); font-size: 13px; line-height: 1.65; margin: 0; }
+.live-foot {
+  margin: clamp(28px, 5vw, 44px) 0 0; padding-top: 18px; border-top: 1px solid var(--rule);
+  color: var(--graphite); font-size: 13px; max-width: 72ch;
+}
+.live-foot a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+
+.live-filters {
+  display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center;
+  justify-content: space-between; padding: clamp(16px, 3vw, 22px) 0;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.segmented {
+  display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden;
+}
+.segmented button {
+  padding: 8px 15px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--graphite);
+  transition: background 140ms ease, color 140ms ease;
+}
+.segmented button + button { border-left: 1px solid var(--rule); }
+.segmented button:hover { color: var(--ink); }
+.segmented button.on { background: var(--ink); color: var(--paper); font-weight: 600; }
+
+.live-count {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--faint); padding-bottom: 12px;
+}
+
+.channel-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 16px;
+}
+.channel { display: block; }
+.channel-tile {
+  position: relative; aspect-ratio: 16 / 9; display: grid; place-items: center;
+  border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper);
+  overflow: hidden; transition: border-color 160ms ease, transform 160ms ease;
+}
+.channel:hover .channel-tile { border-color: var(--ink); transform: translateY(-2px); }
+.channel-logo {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; padding: 12px;
+}
+.channel-mark {
+  padding: 0 12px; text-align: center; color: var(--ink);
+  font-family: var(--display); font-weight: 800; font-size: clamp(14px, 1.55vw, 21px);
+  line-height: 1.08; letter-spacing: -0.025em; font-variation-settings: 'wdth' 112;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.channel-kind {
+  position: absolute; left: 8px; bottom: 8px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.72); color: var(--paper); padding: 3px 7px; border-radius: 999px;
+}
+.channel-name {
+  margin-top: 10px; color: var(--ink); font-family: var(--display); font-weight: 700;
+  font-size: 14px; letter-spacing: -0.015em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.channel-sub { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.02em; margin-top: 3px; }
+.live-crumb {
+  display: flex; gap: 8px; align-items: center; font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint);
+  padding-bottom: 16px;
+}
+.live-crumb a { color: var(--graphite); }
+.live-crumb a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+
+.live-frame {
+  position: relative; margin: clamp(18px, 3vw, 26px) 0 0;
+  border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; background: var(--paper);
+}
+.live-embed { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: var(--ink); }
+.live-gate {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center;
+  padding: clamp(20px, 4vw, 40px); min-height: 220px;
+}
+.live-gate h2 { font-size: clamp(20px, 3vw, 30px); margin: 8px 0 8px; }
+.live-gate p { color: var(--graphite); font-size: 14px; margin: 0; max-width: 62ch; }
+
+.live-controls {
+  display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center;
+  justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--rule);
+}
+.live-related { padding-top: clamp(24px, 4vw, 34px); }
+.live-related h2 { font-size: 19px; margin-bottom: 14px; }
+.skel-channel { aspect-ratio: 16 / 9; }
+.skel-channel-frame { aspect-ratio: 16 / 9; max-height: 520px; margin: clamp(18px, 3vw, 26px) 0; }
+
 /* ---- Footer ---- */
 footer { border-top: 1px solid var(--rule); margin-top: clamp(36px, 8vw, 72px); padding: 28px 0 40px; color: var(--graphite); font-size: 13px; }
 .foot-grid { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: flex-start; }
@@ -398,11 +512,16 @@ footer a:hover { color: var(--ink); text-decoration: underline; text-underline-o
 
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
+  .navbar-inner { gap: 14px; }
+  .nav-links { gap: 14px; }
+  .nav-search .input { width: 150px; }
+  .nav-actions .name { display: none; }
   .hero-grid { grid-template-columns: 1fr; align-items: start; }
   .detail-head { grid-template-columns: 1fr; }
   .episode { grid-template-columns: 32px minmax(0, 96px) minmax(0, 1fr); }
   .episode .btn { grid-column: 3; justify-self: start; }
   .ep-syn { display: none; }
+  .live-head { grid-template-columns: 1fr; align-items: start; }
 }
 
 @media (max-width: 640px) {
@@ -426,10 +545,23 @@ footer a:hover { color: var(--ink); text-decoration: underline; text-underline-o
   .hero-copy h1 { font-size: clamp(30px, 8.6vw, 40px); }
   .plan { border-right: 0; border-bottom: 1px solid var(--rule); }
   .stat { border-right: 0; border-bottom: 1px solid var(--rule); }
+  .channel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .channel-logo { padding: 12px; }
+  .channel-mark { font-size: clamp(12px, 3.6vw, 17px); padding: 0 8px; }
+  .channel-name { font-size: 13px; }
+  .channel-sub { font-size: 10px; }
+  .live-filters { flex-direction: column; align-items: flex-start; }
+  .live-filters .segmented { width: 100%; }
+  .segmented button { flex: 1 1 0; }
+  .live-controls { flex-direction: column; align-items: flex-start; }
+  .live-gate { grid-template-columns: 1fr; min-height: 0; }
+  .live-gate .btn { justify-self: start; }
+  .live-head h1 { font-size: clamp(26px, 8vw, 34px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   .row-track { scroll-behavior: auto; }
   .card:hover { transform: none; }
+  .channel:hover .channel-tile { transform: none; }
 }

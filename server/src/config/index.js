@@ -59,6 +59,19 @@ const config = {
   },
 
   mediaBaseUrl: process.env.MEDIA_BASE_URL || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample',
+
+  tmdb: {
+    // Optional. Empty => the seed keeps the built-in fictional catalogue, so a fresh
+    // clone works with no accounts at all. Accepts either credential TMDB issues:
+    // a v4 read access token (JWT-shaped) or a v3 API key.
+    apiKey: process.env.TMDB_API_KEY || '',
+    apiBase: process.env.TMDB_API_BASE || 'https://api.themoviedb.org/3',
+    // The image CDN needs no key, so stored poster/backdrop URLs stay public links.
+    imageBase: process.env.TMDB_IMAGE_BASE || 'https://image.tmdb.org/t/p',
+    get enabled() {
+      return Boolean(this.apiKey);
+    },
+  },
 };
 
 module.exports = config;

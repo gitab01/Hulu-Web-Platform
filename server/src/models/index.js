@@ -6,4 +6,5 @@ module.exports = {
   Title: require('./Title'),
   WatchEvent: require('./WatchEvent'),
   RefreshToken: require('./RefreshToken'),
+  Channel: require('./Channel'),
 };

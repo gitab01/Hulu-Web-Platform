@@ -139,14 +139,13 @@ async function becauseYouWatched(userId, { limit = 12 } = {}) {
  */
 async function coldStartRecommendations(user, { limit = 12 } = {}) {
   const genres = (user && user.genres) || [];
+  const sort = { popularity: -1, externalPopularity: -1, completedLast30d: -1 };
   let rows;
   if (genres.length) {
-    rows = await Title.find({ genres: { $in: genres } })
-      .sort({ popularity: -1, completedLast30d: -1 })
-      .limit(limit);
+    rows = await Title.find({ genres: { $in: genres } }).sort(sort).limit(limit);
   }
   if (!rows || rows.length === 0) {
-    rows = await Title.find({}).sort({ popularity: -1, completedLast30d: -1 }).limit(limit);
+    rows = await Title.find({}).sort(sort).limit(limit);
   }
   return rows;
 }

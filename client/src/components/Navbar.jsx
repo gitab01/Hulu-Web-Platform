@@ -44,6 +44,7 @@ export default function Navbar() {
           <NavLink to="/" end>
             Home
           </NavLink>
+          <NavLink to="/live">Live TV</NavLink>
           <NavLink to="/account">Account</NavLink>
           {!entitled && <NavLink to="/subscribe">Plans</NavLink>}
         </nav>
@@ -77,6 +78,9 @@ export default function Navbar() {
         {search}
         <NavLink to="/" end onClick={() => setOpen(false)}>
           Home
+        </NavLink>
+        <NavLink to="/live" onClick={() => setOpen(false)}>
+          Live TV
         </NavLink>
         <NavLink to="/account" onClick={() => setOpen(false)}>
           Account
