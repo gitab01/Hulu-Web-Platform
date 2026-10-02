@@ -24,15 +24,30 @@ const channelsAll = rowCache.wrap('channels:all', 60 * 1000, async () => {
   return rows.map(channelSummary);
 });
 
+/** The locally produced slate, ordered by our own watch signal. */
+const originalsRow = rowCache.wrap('row:originals', ROW_TTL, async () => {
+  const rows = await Title.find({ origin: 'Ethiopia' })
+    .sort({ popularity: -1, externalPopularity: -1, year: -1 })
+    .limit(20);
+  return rows.map(titleSummary);
+});
+
+/**
+ * The acquired catalogue's two global rows. They skip the local slate on purpose:
+ * the originals have their own row and the hero, so repeating the same six covers
+ * three times down one page is a layout fault, not a ranking.
+ */
+const ACQUIRED = { origin: { $ne: 'Ethiopia' } };
+
 const trendingRow = rowCache.wrap('row:trending', ROW_TTL, async () => {
   // Our own completions rank first; the imported market signal breaks the tie for
   // titles nobody has watched yet, so a fresh catalogue still orders sensibly.
-  const rows = await Title.find({}).sort({ popularity: -1, externalPopularity: -1, completedLast30d: -1 }).limit(20);
+  const rows = await Title.find(ACQUIRED).sort({ popularity: -1, externalPopularity: -1, completedLast30d: -1 }).limit(20);
   return rows.map(titleSummary);
 });
 
 const newReleasesRow = rowCache.wrap('row:new', ROW_TTL, async () => {
-  const rows = await Title.find({}).sort({ year: -1, externalPopularity: -1, createdAt: -1 }).limit(20);
+  const rows = await Title.find(ACQUIRED).sort({ year: -1, externalPopularity: -1, createdAt: -1 }).limit(20);
   return rows.map(titleSummary);
 });
 
@@ -67,6 +82,13 @@ router.get(
   optionalAuth,
   asyncHandler(async (req, res) => {
     const rows = [];
+
+    // The local slate opens the page: this service is Ethiopian first, and an
+    // acquired international catalogue should not be the first thing a member sees.
+    const originals = await originalsRow();
+    if (originals.length) {
+      rows.push({ key: 'ethiopian_originals', title: 'Ethiopian Originals', titleLocal: 'ኢትዮጵያ', items: originals });
+    }
 
     if (req.user) {
       const cont = await continueWatching(req.user._id);
@@ -159,7 +181,7 @@ router.get(
     const q = String(req.query.q || '').trim();
     if (!q) return res.json({ results: [] });
     const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    const rows = await Title.find({ $or: [{ name: rx }, { genres: rx }] }).limit(24);
+    const rows = await Title.find({ $or: [{ name: rx }, { nameLocal: rx }, { genres: rx }] }).limit(24);
     res.json({ results: rows.map(titleSummary) });
   })
 );
@@ -171,12 +193,16 @@ router.get(
     const all = await channelsAll();
     const category = String(req.query.category || '').trim();
     const kind = String(req.query.kind || '').trim();
+    const country = String(req.query.country || '').trim();
     const q = String(req.query.q || '').trim().toLowerCase();
+    const limit = Math.min(parseInt(req.query.limit, 10) || 0, all.length || 1);
 
     let items = all;
     if (category && category !== 'All') items = items.filter((c) => c.category === category);
     if (kind === 'tv' || kind === 'radio') items = items.filter((c) => c.kind === kind);
+    if (country) items = items.filter((c) => c.country === country);
     if (q) items = items.filter((c) => `${c.name} ${c.country} ${c.language}`.toLowerCase().includes(q));
+    if (limit > 0) items = items.slice(0, limit);
 
     res.json({
       categories: ['All', ...Channel.CATEGORIES],

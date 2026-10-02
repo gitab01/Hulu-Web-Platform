@@ -37,6 +37,13 @@ const titleSchema = new mongoose.Schema(
     backdropUrl: { type: String, default: '' },
     year: { type: Number, default: null },
     maturity: { type: String, default: 'TV-MA' },
+    // Production territory. The home page leads with 'Ethiopia' so the local slate
+    // is never buried under the acquired international catalogue.
+    origin: { type: String, default: 'International', index: true },
+    // Amharic title for local originals; blank means the Latin name stands alone.
+    nameLocal: { type: String, default: '' },
+    // Which hand-drawn key art the client typesets when a title has no photography.
+    motif: { type: String, default: '' },
 
     // Nested because the access pattern always fetches a whole title; avoids a
     // join-equivalent lookup for the detail page.

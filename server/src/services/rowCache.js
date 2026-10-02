@@ -27,4 +27,11 @@ function wrap(key, ttlMs, producer) {
   };
 }
 
-module.exports = { get, wrap };
+/** Production corrects a stale row by letting the TTL lapse; a test that rewrites
+    the catalogue and re-reads the same row cannot wait for that. */
+function clear(key) {
+  if (key === undefined) store.clear();
+  else store.delete(key);
+}
+
+module.exports = { get, wrap, clear };

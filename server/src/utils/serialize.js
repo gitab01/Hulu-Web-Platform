@@ -15,6 +15,9 @@ function titleSummary(t) {
     year: t.year,
     maturity: t.maturity,
     popularity: t.popularity,
+    origin: t.origin,
+    nameLocal: t.nameLocal,
+    motif: t.motif,
   };
 }
 

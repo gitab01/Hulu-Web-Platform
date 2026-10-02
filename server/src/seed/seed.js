@@ -8,6 +8,10 @@
  * key it falls back to the invented catalogue below, so a fresh clone seeds with no
  * accounts at all. Either way the media is public-domain stand-in footage — TMDB
  * publishes metadata, not streams.
+ *
+ * The Ethiopian originals in data/originals.js are appended on both paths: a
+ * service produces its own local slate, it does not license it from anyone, so an
+ * import must never displace it.
  */
 
 const { connectDb, disconnectDb } = require('../config/db');
@@ -17,6 +21,7 @@ const Subscription = require('../models/Subscription');
 const WatchEvent = require('../models/WatchEvent');
 const Channel = require('../models/Channel');
 const { CHANNELS } = require('../data/channels');
+const { ETHIOPIAN_ORIGINALS } = require('../data/originals');
 const config = require('../config');
 const { recomputeSimilarity } = require('../services/recommendation');
 const tmdb = require('../services/tmdb');
@@ -219,22 +224,37 @@ async function loadCatalogue() {
   if (!tmdb.enabled()) {
     console.log('[seed] TMDB_API_KEY is not set — using the built-in fictional catalogue');
     console.log('[seed] set TMDB_API_KEY (free at themoviedb.org) to import real titles and artwork');
-    return CATALOGUE;
+    return withOriginals(CATALOGUE);
   }
 
   try {
     const docs = await tmdb.buildCatalogue({ mediaFor });
     if (docs.length < 8) {
       console.warn(`[seed] TMDB returned only ${docs.length} usable titles — seeding the fictional catalogue instead`);
-      return CATALOGUE;
+      return withOriginals(CATALOGUE);
     }
     const films = docs.filter((d) => d.type === 'movie').length;
     console.log(`[seed] TMDB import: ${docs.length} titles (${films} films, ${docs.length - films} series)`);
-    return docs;
+    return withOriginals(docs);
   } catch (err) {
     console.warn(`[seed] TMDB import failed (${err.message}) — seeding the fictional catalogue instead`);
-    return CATALOGUE;
+    return withOriginals(CATALOGUE);
   }
+}
+
+/**
+ * The local slate is produced by the service itself, so an imported international
+ * catalogue never displaces it. Only the stand-in media path is filled in here.
+ */
+function withOriginals(docs) {
+  const originals = ETHIOPIAN_ORIGINALS.map((t) => ({
+    ...t,
+    seasons: t.seasons.map((s) => ({
+      ...s,
+      episodes: s.episodes.map(({ mediaName, ...e }) => ({ ...e, mediaUrl: media(mediaName) })),
+    })),
+  }));
+  return [...originals, ...docs];
 }
 
 async function upsertCatalogue(docs) {
@@ -344,11 +364,12 @@ async function seed() {
   ]);
 
   const titles = await upsertCatalogue(await loadCatalogue());
-  console.log(`[seed] ${titles.length} titles`);
+  const local = titles.filter((t) => t.origin === 'Ethiopia').length;
+  console.log(`[seed] ${titles.length} titles (${local} Ethiopian originals)`);
 
   const channels = await seedChannels();
-  const local = CHANNELS.filter((c) => c.country === 'Ethiopia').length;
-  console.log(`[seed] ${channels} live channels (${local} Ethiopian, ${channels - local} international)`);
+  const localChannels = CHANNELS.filter((c) => c.country === 'Ethiopia').length;
+  console.log(`[seed] ${channels} live channels (${localChannels} Ethiopian, ${channels - localChannels} international)`);
 
   const demo = await makeUser('demo@hulu.test', 'password123', 'Demo Viewer', DEMO_PREFS);
   const maya = await makeUser('maya@hulu.test', 'password123', 'Maya', MAYA_PREFS);
