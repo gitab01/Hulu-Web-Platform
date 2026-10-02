@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Info, Play } from 'lucide-react';
 import { catalog } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Row from '../components/Row';
@@ -8,60 +7,6 @@ import RowSkeleton from '../components/RowSkeleton';
 import EthiopiaSpots from '../components/EthiopiaSpots';
 import LiveStrip from '../components/LiveStrip';
 import EthiopiaBanner from '../components/EthiopiaBanner';
-
-function Hero({ item }) {
-  if (!item) return null;
-  const local = item.origin === 'Ethiopia';
-  return (
-    <section className={`hero${local ? ' hero--local' : ''}`}>
-      <div className="container hero-inner">
-        <div className="hero-copy">
-          <span className="eyebrow">
-            {local && (
-              <span className="flagline" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-            )}
-            {local ? 'Ethiopian Original' : 'Featured title'}
-          </span>
-          {local && <div className="hero-local">{item.nameLocal}</div>}
-          <h1>{item.name}</h1>
-          <dl className="hero-facts">
-            <div>
-              <dt>Type</dt>
-              <dd>{item.type === 'series' ? 'Series' : 'Film'}</dd>
-            </div>
-            <div>
-              <dt>Year</dt>
-              <dd>{item.year}</dd>
-            </div>
-            <div>
-              <dt>Genres</dt>
-              <dd>{(item.genres || []).slice(0, 3).join(', ')}</dd>
-            </div>
-            <div>
-              <dt>Rating</dt>
-              <dd>{item.maturity}</dd>
-            </div>
-          </dl>
-          <p>{item.synopsis}</p>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" to={`/title/${item.slug}`}>
-              <Play aria-hidden="true" />
-              Watch {item.name}
-            </Link>
-            <Link className="btn btn-ghost" to={`/title/${item.slug}`}>
-              <Info aria-hidden="true" />
-              Episodes and details
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function Home() {
   const { ready, user } = useAuth();
@@ -82,17 +27,11 @@ export default function Home() {
     };
   }, [ready, attempt]);
 
-  const trending = rows?.find((r) => r.key === 'trending');
-  const local = rows?.find((r) => r.key === 'ethiopian_originals');
-  const heroItem = rows ? (local?.items?.[0] || trending?.items?.[0]) || null : null;
-  // A row gives up its seat only when the hero came out of it; the local slate
-  // keeps its row, because seeing the whole slate is the point of featuring one.
-  const heroSource = trending?.items?.[0]?.id === heroItem?.id ? trending : null;
-  const otherRows = rows?.filter((r) => r !== heroSource) || [];
   const hasTitles = Boolean(rows?.some((r) => r?.items?.length));
 
   return (
     <>
+      <h1 className="sr-only">Internet television: Ethiopian originals, films, series and live channels</h1>
       <EthiopiaSpots />
 
       {error && (
@@ -109,9 +48,6 @@ export default function Home() {
 
       {!error && !rows && (
         <>
-          <div className="container" style={{ paddingTop: 'clamp(20px, 4vw, 36px)' }}>
-            <div className="skel skel-hero" />
-          </div>
           <RowSkeleton />
           <RowSkeleton />
         </>
@@ -119,10 +55,9 @@ export default function Home() {
 
       {!error && rows && (
         <>
-          <Hero item={heroItem} />
           <EthiopiaBanner />
           <LiveStrip />
-          {hasTitles && otherRows.map((row) => <Row key={row.key} row={row} />)}
+          {hasTitles && rows.map((row) => <Row key={row.key} row={row} />)}
           {!hasTitles && (
             <div className="container">
               <div className="notice">
@@ -139,7 +74,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          {hasTitles && heroItem && !user && (
+          {hasTitles && !user && (
             <div className="container">
               <div className="notice">
                 <h2>Sign in to make these rows yours</h2>

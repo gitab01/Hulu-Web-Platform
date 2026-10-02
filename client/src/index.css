@@ -64,6 +64,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 
 .container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding-inline: var(--gutter); }
 .center { text-align: center; }
+/* For a heading the page must have for the outline but has no room to show. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 
 /* ---- Utility type ---- */
 .eyebrow {
@@ -205,27 +210,6 @@ h2 svg,
 .input:hover { border-color: var(--graphite); }
 .input:focus { outline: 2px solid var(--signal); outline-offset: 1px; border-color: var(--ink); }
 
-/* ---- Hero: featured title ---- */
-.hero { border-bottom: 1px solid var(--rule); overflow: hidden; }
-.hero-inner { padding: clamp(28px, 6vw, 64px) 0 clamp(32px, 6vw, 60px); }
-.hero-copy .eyebrow { display: block; margin-bottom: 18px; }
-.hero-copy h1 {
-  font-size: clamp(38px, 6.4vw, 82px);
-  line-height: 0.92;
-  letter-spacing: -0.035em;
-  font-variation-settings: 'wdth' 118, 'wght' 800;
-  margin-bottom: 18px;
-}
-.hero-copy p {
-  color: var(--graphite); font-size: clamp(15px, 1.4vw, 17px);
-  max-width: 46ch; margin: 0 0 24px;
-}
-.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-.hero-facts { display: flex; flex-wrap: wrap; gap: 18px; margin: 0 0 22px; }
-.hero-facts div { min-width: 0; }
-.hero-facts dt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
-.hero-facts dd { margin: 3px 0 0; font-size: 14px; font-weight: 600; }
-
 /* ---- Covers: artwork, or a generated slab when a title has none ----
    Seeded titles carry TMDB backdrops and posters; the slab typesets the
    metadata instead: black field, stretched display title, mono slate line. */
@@ -234,7 +218,6 @@ h2 svg,
   border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column;
   justify-content: space-between; padding: clamp(12px, 1.6vw, 20px);
 }
-.cover--hero { aspect-ratio: 4 / 3; }
 .cover--card { aspect-ratio: 16 / 9; }
 .cover--detail { aspect-ratio: 16 / 7; }
 .cover--ep { aspect-ratio: 16 / 9; border-radius: 0; padding: 10px 12px; }
@@ -250,7 +233,6 @@ h2 svg,
   font-size: clamp(17px, 2vw, 26px); line-height: 1.05;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.cover--hero .cover-name { font-size: clamp(24px, 3.4vw, 44px); -webkit-line-clamp: 3; }
 .cover-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .cover-slate {
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
@@ -285,7 +267,6 @@ h2 svg,
   font-family: var(--ethiopic); font-weight: 600; line-height: 1.3;
   color: var(--tibeb-gold); font-size: clamp(14px, 1.7vw, 21px); margin-bottom: 5px;
 }
-.cover--hero .cover-local-am { font-size: clamp(18px, 2.6vw, 32px); }
 .cover--local.cover--detail .cover-name { display: -webkit-box; }
 .cover-tibeb { position: absolute; left: 0; right: 0; bottom: 0; display: flex; height: 5px; }
 .cover-tibeb span { flex: 1; }
@@ -302,11 +283,6 @@ h2 svg,
 .flagline span:nth-child(1) { background: var(--tibeb-green); }
 .flagline span:nth-child(2) { background: var(--tibeb-gold); }
 .flagline span:nth-child(3) { background: var(--tibeb-red); }
-.hero--local .eyebrow { display: inline-flex; align-items: center; color: var(--ink); }
-.hero-local {
-  font-family: var(--ethiopic); font-weight: 600; color: var(--graphite);
-  font-size: clamp(17px, 2.2vw, 27px); line-height: 1.35; margin: 14px 0 2px;
-}
 
 .row-local {
   font-family: var(--ethiopic); font-weight: 600; font-size: 15px;
@@ -463,7 +439,6 @@ h2 svg,
 .skel-poster { aspect-ratio: 16 / 9; }
 .skel-line { height: 11px; margin: 10px 13px 0; }
 .skel-head { height: 16px; width: 180px; margin-bottom: 16px; }
-.skel-hero { aspect-ratio: 4 / 3; max-height: 420px; }
 
 /* ---- Title detail ---- */
 .detail-head {
@@ -775,7 +750,6 @@ footer a:hover { color: var(--ink); text-decoration: underline; text-underline-o
   .nav-links { gap: 14px; }
   .nav-search .input { width: 150px; }
   .nav-actions .name { display: none; }
-  .hero-inner { padding: clamp(24px, 6vw, 40px) 0 clamp(28px, 6vw, 44px); }
   .detail-head { grid-template-columns: 1fr; }
   .episode { grid-template-columns: 32px minmax(0, 96px) minmax(0, 1fr); }
   .episode .btn { grid-column: 3; justify-self: start; }
@@ -804,7 +778,6 @@ footer a:hover { color: var(--ink); text-decoration: underline; text-underline-o
   .nav-sheet .input { margin: 12px 0 4px; }
   .row-arrows { display: none; }
   :root { --card-w: 62vw; }
-  .hero-copy h1 { font-size: clamp(30px, 8.6vw, 40px); }
   .plan { border-right: 0; border-bottom: 1px solid var(--rule); }
   .stat { border-right: 0; border-bottom: 1px solid var(--rule); }
   .channel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
