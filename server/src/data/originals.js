@@ -136,7 +136,7 @@ const ETHIOPIAN_ORIGINALS = [
   {
     slug: 'irreecha',
     name: 'Irreecha',
-    nameLocal: 'ለገባ',
+    nameLocal: 'ኢሬቻ',
     type: 'movie',
     origin: 'Ethiopia',
     motif: 'lake',
