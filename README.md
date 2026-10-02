@@ -1,8 +1,8 @@
 # Streamline — Hulu Web Platform (portfolio build)
 
-A full-stack subscription video-on-demand platform built end to end: **authentication with rotating refresh tokens, per-segment entitlement, signed playback URLs, hybrid recommendations, and Stripe (with a mock fallback) billing.**
+A full-stack subscription video-on-demand platform built end to end: **authentication with rotating refresh tokens, per-segment entitlement, signed playback URLs, hybrid recommendations, and Stripe (with a mock fallback) billing.** It leads with an Ethiopian slate — locally produced originals on the front page and the Ethiopian broadcasters live — over an acquired international catalogue.
 
-> This is an original, self-contained implementation inspired by the architecture of a streaming platform. All titles, artwork and copy are fictional; media previews are public-domain sample clips (Google's open test bucket). No Hulu branding or licensed content is used.
+> This is an original, self-contained implementation inspired by the architecture of a streaming platform. All titles, artwork and copy are fictional: the Ethiopian originals are invented, with key art drawn in CSS/SVG, and media previews are public-domain sample clips (Google's open test bucket). Live TV embeds each broadcaster's own public stream. No Hulu branding or licensed content is used.
 
 **Stack:** React · Vite · Node.js · Express · MongoDB (Mongoose) · JWT · Stripe
 
@@ -25,7 +25,7 @@ Three tiers. The only non-obvious component is the **recommendation service**, w
 
 ### Request flow highlights
 - **Sign in / subscribe** — email/password issues a 15-minute access token and a rotating refresh token; checkout creates a subscription record that entitlement middleware reads.
-- **Browse** — rows are server-composed (`Continue Watching`, `Trending`, `Because You Watched`, `New Releases`), each with its own resolver and short-TTL cache.
+- **Browse** — rows are server-composed (`Ethiopian Originals`, `Continue Watching`, `Trending`, `Because You Watched`, `New Releases`), each with its own resolver and short-TTL cache. The two global rows skip the local slate so nothing repeats, and the front page's live strip is the broadcasters' own feed — no entitlement, because we host nothing.
 - **Play** — the player requests a short-lived, title-scoped signed URL. Entitlement is checked at issue time **and again on every segment request**.
 - **Learn** — progress is buffered client-side and flushed every 10s (plus on pause/seek/`visibilitychange`/`beforeunload`); the server keeps the **furthest** position.
 
@@ -36,16 +36,18 @@ Three tiers. The only non-obvious component is the **recommendation service**, w
 ```
 hulu-web-platform/
 ├─ server/            Express API (auth, catalogue, player, billing, recommender)
-│  ├─ src/models/     User, Subscription, Title, WatchEvent, RefreshToken
+│  ├─ src/models/     User, Subscription, Title, WatchEvent, RefreshToken, Channel
 │  ├─ src/middleware/ auth, entitlement, rate-limit, error
 │  ├─ src/routes/     auth, catalog, player, subscription, webhook
 │  ├─ src/services/   tokenService, recommendation, billingService, rowCache
+│  ├─ src/data/       channels.js (Live TV line-up) · originals.js (Ethiopian slate)
 │  ├─ src/jobs/       recomputeSimilarity (nightly batch)
 │  ├─ src/seed/       fictional catalogue + demo users + watch history
 │  └─ tests/          entitlement states, refresh rotation/reuse, recs fixture
 ├─ client/            React + Vite SPA
 │  └─ src/            api client, auth context, pages, components
 ├─ render.yaml        Render blueprint (API + nightly cron)
+├─ vercel.json        Build config for a Vercel project rooted at the repo root
 └─ README.md
 ```
 
@@ -132,7 +134,15 @@ Use the included `render.yaml` (New → Blueprint) or create a **Web Service** m
 > **Stripe webhook (real mode only):** point `https://<api>/webhooks/stripe` at the events `checkout.session.completed` and `customer.subscription.*`, then set `STRIPE_WEBHOOK_SECRET`.
 
 ### Client → Vercel
-Import the repo, set **Root Directory = `client`**. Vercel auto-detects Vite (`vercel.json` handles SPA rewrites).
+This repo is a monorepo: `client/` and `server/` each own their `package.json`, and there is no root one.
+
+- **Root Directory = `client`** (recommended). `client/vercel.json` builds Vite and adds the SPA rewrites.
+- **Root Directory = repo root** (what importing the repo without changing the setting gives you). The root
+  `vercel.json` installs and builds inside `client/` and publishes `client/dist`, so the build still works.
+  Without that file Vercel runs `npm run build` at the root and fails with
+  `ENOENT: no such file or directory, open '/vercel/path0/package.json'`.
+
+Either way:
 - Env var: `VITE_API_BASE = https://<your-render-api-url>` (no trailing slash).
 - Deploy. Add the resulting `https://<app>.vercel.app` origin to the API's `CORS_ORIGIN` and `FRONTEND_URL`, then redeploy the API.
 

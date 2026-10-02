@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { CreditCard, Play } from 'lucide-react';
 import { catalog } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Row from '../components/Row';
@@ -73,13 +74,26 @@ export default function TitlePage() {
             {title.type === 'series' ? 'Series' : 'Film'} · {title.year} · {title.maturity}
           </span>
           <h1>{title.name}</h1>
+          {title.nameLocal && (
+            <div className="detail-local">
+              <span className="flagline" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              <span className="detail-local-am">{title.nameLocal}</span>
+              <span className="detail-local-credit">Ethiopian Original</span>
+            </div>
+          )}
           <p className="synopsis">{title.synopsis}</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button className="btn btn-primary btn--play" onClick={() => goToEpisode(resumeTarget)}>
+            <button className="btn btn-primary" onClick={() => goToEpisode(resumeTarget)}>
+              <Play aria-hidden="true" />
               {primaryLabel}
             </button>
             {!entitled && (
               <Link className="btn" to="/subscribe">
+                <CreditCard aria-hidden="true" />
                 Choose a plan to watch
               </Link>
             )}
@@ -144,6 +158,7 @@ export default function TitlePage() {
                       </div>
                     </div>
                     <button className="btn btn-sm" onClick={() => goToEpisode(ep._id)}>
+                      <Play aria-hidden="true" />
                       {resumable ? 'Resume' : 'Play'}
                     </button>
                   </li>

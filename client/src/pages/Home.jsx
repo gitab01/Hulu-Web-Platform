@@ -1,18 +1,33 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Info, Play } from 'lucide-react';
 import { catalog } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Row from '../components/Row';
 import RowSkeleton from '../components/RowSkeleton';
 import CoverArt from '../components/CoverArt';
+import EthiopiaSpots from '../components/EthiopiaSpots';
+import LiveStrip from '../components/LiveStrip';
+import EthiopiaBanner from '../components/EthiopiaBanner';
 
 function Hero({ item }) {
   if (!item) return null;
+  const local = item.origin === 'Ethiopia';
   return (
-    <section className="hero">
+    <section className={`hero${local ? ' hero--local' : ''}`}>
       <div className="container hero-grid">
         <div className="hero-copy">
-          <span className="eyebrow">Featured title</span>
+          <span className="eyebrow">
+            {local && (
+              <span className="flagline" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
+            {local ? 'Ethiopian Original' : 'Featured title'}
+          </span>
+          {local && <div className="hero-local">{item.nameLocal}</div>}
           <h1>{item.name}</h1>
           <dl className="hero-facts">
             <div>
@@ -34,10 +49,12 @@ function Hero({ item }) {
           </dl>
           <p>{item.synopsis}</p>
           <div className="hero-actions">
-            <Link className="btn btn-primary btn--play" to={`/title/${item.slug}`}>
+            <Link className="btn btn-primary" to={`/title/${item.slug}`}>
+              <Play aria-hidden="true" />
               Watch {item.name}
             </Link>
             <Link className="btn btn-ghost" to={`/title/${item.slug}`}>
+              <Info aria-hidden="true" />
               Episodes and details
             </Link>
           </div>
@@ -68,8 +85,12 @@ export default function Home() {
   }, [ready, attempt]);
 
   const trending = rows?.find((r) => r.key === 'trending');
-  const heroItem = rows ? trending?.items?.[0] : null;
-  const otherRows = rows?.filter((r) => !(r.key === 'trending' && r.items?.[0]?.id === heroItem?.id)) || [];
+  const local = rows?.find((r) => r.key === 'ethiopian_originals');
+  const heroItem = rows ? (local?.items?.[0] || trending?.items?.[0]) || null : null;
+  // A row gives up its seat only when the hero came out of it; the local slate
+  // keeps its row, because seeing the whole slate is the point of featuring one.
+  const heroSource = trending?.items?.[0]?.id === heroItem?.id ? trending : null;
+  const otherRows = rows?.filter((r) => r !== heroSource) || [];
 
   if (error) {
     return (
@@ -119,8 +140,13 @@ export default function Home() {
   return (
     <>
       <Hero item={heroItem} />
-      {otherRows.map((row) => (
-        <Row key={row.key} row={row} />
+      <EthiopiaSpots />
+      <EthiopiaBanner />
+      {otherRows.map((row, i) => (
+        <Fragment key={row.key}>
+          <Row row={row} />
+          {i === 0 && <LiveStrip />}
+        </Fragment>
       ))}
       {heroItem && !user && (
         <div className="container">

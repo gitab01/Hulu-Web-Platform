@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -12,10 +12,21 @@ import Account from './pages/Account';
 import SearchPage from './pages/SearchPage';
 import LiveTV from './pages/LiveTV';
 import ChannelPage from './pages/ChannelPage';
+import About from './pages/About';
+import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 
 // The player is route-split so its bundle never lands in the browse experience.
 const Player = lazy(() => import('./pages/Player'));
+
+/** Client-side routing leaves the scroll offset alone, so each navigation resets to the top. */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 /** Requires an authenticated user; preserves the intended destination in state. */
 function RequireAuth({ children }) {
@@ -59,6 +70,7 @@ export function PageLoading() {
 export default function App() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
+      <ScrollToTop />
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -70,6 +82,8 @@ export default function App() {
           <Route path="/title/:slug" element={<TitlePage />} />
           <Route path="/live" element={<LiveTV />} />
           <Route path="/live/:slug" element={<ChannelPage />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/subscribe" element={<RequireAuth><Subscribe /></RequireAuth>} />

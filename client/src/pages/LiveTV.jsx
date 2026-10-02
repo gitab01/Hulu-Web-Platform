@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Antenna, LayoutGrid, Radio, Tv } from 'lucide-react';
 import { catalog } from '../api/client';
 import ChannelTile from '../components/ChannelTile';
 
 const KINDS = [
-  { key: '', label: 'TV and radio' },
-  { key: 'tv', label: 'TV' },
-  { key: 'radio', label: 'Radio' },
+  { key: '', label: 'TV and radio', icon: LayoutGrid },
+  { key: 'tv', label: 'TV', icon: Tv },
+  { key: 'radio', label: 'Radio', icon: Radio },
 ];
 
 export default function LiveTV() {
@@ -34,7 +35,10 @@ export default function LiveTV() {
       <header className="live-head">
         <div>
           <span className="eyebrow">Free to air</span>
-          <h1>Live TV</h1>
+          <h1>
+            <Antenna className="row-icon" aria-hidden="true" />
+            Live TV
+          </h1>
         </div>
         <p className="live-note">
           Every channel opens the broadcaster&apos;s own public stream — nothing here is re-hosted. When a channel is off air,
@@ -57,17 +61,21 @@ export default function LiveTV() {
           ))}
         </div>
         <div className="segmented">
-          {KINDS.map((k) => (
-            <button
-              key={k.label}
-              type="button"
-              className={kind === k.key ? 'on' : ''}
-              aria-pressed={kind === k.key}
-              onClick={() => setKind(k.key)}
-            >
-              {k.label}
-            </button>
-          ))}
+          {KINDS.map((k) => {
+            const Icon = k.icon;
+            return (
+              <button
+                key={k.label}
+                type="button"
+                className={kind === k.key ? 'on' : ''}
+                aria-pressed={kind === k.key}
+                onClick={() => setKind(k.key)}
+              >
+                <Icon aria-hidden="true" />
+                {k.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

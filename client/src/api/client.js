@@ -110,11 +110,13 @@ export const catalog = {
   title: (slug) => api(`/catalog/titles/${slug}`),
   byId: (id) => api(`/catalog/titles/id/${id}`),
   search: (q) => api(`/catalog/search?q=${encodeURIComponent(q)}`),
-  channels: ({ category, kind, q } = {}) => {
+  channels: ({ category, kind, country, q, limit } = {}) => {
     const p = new URLSearchParams();
     if (category && category !== 'All') p.set('category', category);
     if (kind) p.set('kind', kind);
+    if (country) p.set('country', country);
     if (q) p.set('q', q);
+    if (limit) p.set('limit', String(limit));
     const qs = p.toString();
     return api(`/catalog/channels${qs ? `?${qs}` : ''}`);
   },

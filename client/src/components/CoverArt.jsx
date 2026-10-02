@@ -3,7 +3,12 @@
  * the name in stretched display type and a mono slate line. Real artwork comes from
  * TMDB on seed; landscape art is chosen for the wide slots (an episode still for
  * episodes, a backdrop for cards, hero and detail) and falls back to the poster.
+ *
+ * A title with no art but an Amharic name is one of the local originals, and gets
+ * its own drawn key art rather than the generic slab.
  */
+import EthiopianCover, { hasLocalArt } from './EthiopianCover';
+
 function initialsOf(name = '') {
   const words = name.replace(/[^A-Za-z0-9 ]/g, ' ').split(' ').filter(Boolean);
   if (!words.length) return '--';
@@ -19,6 +24,8 @@ export default function CoverArt({ item, size = 'card', slate }) {
   const url = artFor(item, size);
   const genres = (item.genres || []).slice(0, 2).join(' · ');
   const slateLine = slate || `${item.type === 'series' ? 'Series' : 'Film'} — ${item.year || '—'}`;
+
+  if (hasLocalArt(item)) return <EthiopianCover item={item} size={size} />;
 
   return (
     <div className={`cover cover--${size}`} role={url ? undefined : 'img'} aria-label={url ? undefined : `${item.name} cover`}>

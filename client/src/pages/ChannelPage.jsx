@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Play } from 'lucide-react';
 import { catalog } from '../api/client';
 import ChannelTile from '../components/ChannelTile';
 
@@ -91,7 +92,8 @@ export default function ChannelPage() {
                   latest videos below.
                 </p>
               </div>
-              <button className="btn btn-primary btn--play" onClick={() => setStarted(true)}>
+              <button className="btn btn-primary" onClick={() => setStarted(true)}>
+                <Play aria-hidden="true" />
                 {mode === 'live' ? 'Start the live stream' : 'Play the latest videos'}
               </button>
             </div>

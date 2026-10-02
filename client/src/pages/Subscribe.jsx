@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Check, Play } from 'lucide-react';
 import { billing } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -61,7 +62,8 @@ export default function Subscribe() {
           <span className="eyebrow">Membership</span>
           <h2>Your plan is active</h2>
           <p>You can play any title in the catalogue. Nothing further to buy.</p>
-          <Link to="/" className="btn btn-primary btn--play">
+          <Link to="/" className="btn btn-primary">
+            <Play aria-hidden="true" />
             Start watching
           </Link>
         </div>
@@ -95,7 +97,10 @@ export default function Subscribe() {
               )}
               <ul>
                 {p.features.map((f) => (
-                  <li key={f}>{f}</li>
+                  <li key={f}>
+                    <Check aria-hidden="true" />
+                    {f}
+                  </li>
                 ))}
               </ul>
               <button className="btn btn-primary btn-block" disabled={busy === p.id} onClick={() => choose(p.id)}>
