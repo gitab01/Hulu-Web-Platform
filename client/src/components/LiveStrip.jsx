@@ -12,6 +12,7 @@ import ChannelTile from './ChannelTile';
  */
 export default function LiveStrip({ country = 'Ethiopia', kind = '', limit = 14 }) {
   const [channels, setChannels] = useState([]);
+  const [held, setHeld] = useState(false);
   const track = useRef(null);
 
   useEffect(() => {
@@ -25,6 +26,22 @@ export default function LiveStrip({ country = 'Ethiopia', kind = '', limit = 14 
     };
   }, [country, kind, limit]);
 
+  // One card every few seconds, wrapping at the end. Held while somebody is
+  // reading or pointing at the strip, and never run at all for a viewer who has
+  // asked for less motion.
+  useEffect(() => {
+    if (held || channels.length < 2) return undefined;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const t = setInterval(() => {
+      const el = track.current;
+      if (!el) return;
+      const rest = el.scrollWidth - el.clientWidth - el.scrollLeft;
+      if (rest <= 4) el.scrollTo({ left: 0, behavior: 'smooth' });
+      else el.scrollBy({ left: Math.min(el.firstElementChild.getBoundingClientRect().width + 12, rest), behavior: 'smooth' });
+    }, 3200);
+    return () => clearInterval(t);
+  }, [held, channels.length]);
+
   if (!channels.length) return null;
 
   const nudge = (dir) => {
@@ -33,7 +50,13 @@ export default function LiveStrip({ country = 'Ethiopia', kind = '', limit = 14 
   };
 
   return (
-    <section className="row container live-strip">
+    <section
+      className="row container live-strip"
+      onPointerEnter={() => setHeld(true)}
+      onPointerLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={() => setHeld(false)}
+    >
       <div className="row-head">
         <div>
           <h2>

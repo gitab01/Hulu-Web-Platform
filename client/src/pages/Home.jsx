@@ -1,11 +1,10 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Info, Play } from 'lucide-react';
 import { catalog } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Row from '../components/Row';
 import RowSkeleton from '../components/RowSkeleton';
-import CoverArt from '../components/CoverArt';
 import EthiopiaSpots from '../components/EthiopiaSpots';
 import LiveStrip from '../components/LiveStrip';
 import EthiopiaBanner from '../components/EthiopiaBanner';
@@ -15,7 +14,7 @@ function Hero({ item }) {
   const local = item.origin === 'Ethiopia';
   return (
     <section className={`hero${local ? ' hero--local' : ''}`}>
-      <div className="container hero-grid">
+      <div className="container hero-inner">
         <div className="hero-copy">
           <span className="eyebrow">
             {local && (
@@ -59,7 +58,6 @@ function Hero({ item }) {
             </Link>
           </div>
         </div>
-        <CoverArt item={item} size="hero" />
       </div>
     </section>
   );
@@ -91,81 +89,76 @@ export default function Home() {
   // keeps its row, because seeing the whole slate is the point of featuring one.
   const heroSource = trending?.items?.[0]?.id === heroItem?.id ? trending : null;
   const otherRows = rows?.filter((r) => r !== heroSource) || [];
-
-  if (error) {
-    return (
-      <div className="container">
-        <div className="notice notice--error">
-          <h2>The catalogue did not load</h2>
-          <p>{error}</p>
-          <button className="btn btn-primary" onClick={() => setAttempt((a) => a + 1)}>
-            Load the catalogue again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!rows) {
-    return (
-      <>
-        <div className="container" style={{ paddingTop: 'clamp(20px, 4vw, 36px)' }}>
-          <div className="skel skel-hero" />
-        </div>
-        <RowSkeleton />
-        <RowSkeleton />
-      </>
-    );
-  }
-
-  if (!rows.some((r) => r?.items?.length)) {
-    return (
-      <div className="container">
-        <div className="notice">
-          <h2>No titles on this deployment yet</h2>
-          <p>
-            The catalogue is empty, so there is nothing to recommend. Run <code>npm run seed</code> against this database to
-            load the sample titles and watch history.
-          </p>
-          {!user && (
-            <Link to="/signup" className="btn btn-primary">
-              Create an account
-            </Link>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const hasTitles = Boolean(rows?.some((r) => r?.items?.length));
 
   return (
     <>
-      <Hero item={heroItem} />
       <EthiopiaSpots />
-      <EthiopiaBanner />
-      {otherRows.map((row, i) => (
-        <Fragment key={row.key}>
-          <Row row={row} />
-          {i === 0 && <LiveStrip />}
-        </Fragment>
-      ))}
-      {heroItem && !user && (
+
+      {error && (
         <div className="container">
-          <div className="notice">
-            <h2>Sign in to make these rows yours</h2>
-            <p>
-              Continue Watching, Because You Watched and Recommended For You are built from your own watch history. An account
-              with no history still gets sensible picks from the genres you choose at signup.
-            </p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Link to="/signin" className="btn btn-primary">
-                Sign in
-              </Link>
-              <Link to="/signup" className="btn">
-                Create an account
-              </Link>
-            </div>
+          <div className="notice notice--error">
+            <h2>The catalogue did not load</h2>
+            <p>{error}</p>
+            <button className="btn btn-primary" onClick={() => setAttempt((a) => a + 1)}>
+              Load the catalogue again
+            </button>
           </div>
         </div>
+      )}
+
+      {!error && !rows && (
+        <>
+          <div className="container" style={{ paddingTop: 'clamp(20px, 4vw, 36px)' }}>
+            <div className="skel skel-hero" />
+          </div>
+          <RowSkeleton />
+          <RowSkeleton />
+        </>
+      )}
+
+      {!error && rows && (
+        <>
+          <Hero item={heroItem} />
+          <EthiopiaBanner />
+          <LiveStrip />
+          {hasTitles && otherRows.map((row) => <Row key={row.key} row={row} />)}
+          {!hasTitles && (
+            <div className="container">
+              <div className="notice">
+                <h2>No titles on this deployment yet</h2>
+                <p>
+                  The catalogue is empty, so there is nothing to recommend. Run <code>npm run seed</code> against this database
+                  to load the sample titles and watch history. The live line-up above needs the same pass.
+                </p>
+                {!user && (
+                  <Link to="/signup" className="btn btn-primary">
+                    Create an account
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+          {hasTitles && heroItem && !user && (
+            <div className="container">
+              <div className="notice">
+                <h2>Sign in to make these rows yours</h2>
+                <p>
+                  Continue Watching, Because You Watched and Recommended For You are built from your own watch history. An
+                  account with no history still gets sensible picks from the genres you choose at signup.
+                </p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <Link to="/signin" className="btn btn-primary">
+                    Sign in
+                  </Link>
+                  <Link to="/signup" className="btn">
+                    Create an account
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </>
   );

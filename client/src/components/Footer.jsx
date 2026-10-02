@@ -100,10 +100,11 @@ export default function Footer() {
           © {year} {brand.name} {brand.suffix} · {brand.tagline}
         </span>
         <p className="slate foot-legal">
-          Ethiopian originals are invented titles whose key art is drawn in the browser; everything else is real metadata
-          imported from The Movie Database at seed time. Live channels embed each broadcaster&apos;s own public stream, and the
-          video here is public-domain stand-in footage because the catalogue carries no licensed streams. This product uses the
-          TMDB API but is not endorsed or certified by TMDB.
+          Ethiopian originals are invented titles whose key art is drawn in the browser, and the stills in the front-page
+          introduction are supplied photographs of the country rather than frames from anything we stream; everything else is
+          real metadata imported from The Movie Database at seed time. Live channels embed each broadcaster&apos;s own public
+          stream, and the video here is public-domain stand-in footage because the catalogue carries no licensed streams. This
+          product uses the TMDB API but is not endorsed or certified by TMDB.
         </p>
       </div>
     </footer>
