@@ -8,6 +8,20 @@ const request = require('supertest');
 const { reset, teardown } = require('./helpers');
 const app = require('../src/app');
 const Channel = require('../src/models/Channel');
+const liveStatus = require('../src/services/liveStatus');
+
+// Whether a broadcaster is streaming is a question for youtube.com, and no test
+// should depend on the answer. The routes call these as properties at request
+// time, so replacing them here is enough: an id missing from the map is unknown,
+// a null is off air, a video id is on air.
+const airtime = new Map();
+liveStatus.liveVideoId = async (id) => (airtime.has(id) ? airtime.get(id) : undefined);
+liveStatus.statuses = async (ids) =>
+  ids.map((id) => {
+    if (!airtime.has(id)) return { channelId: id, liveVideoId: null, onAir: null };
+    const videoId = airtime.get(id) || null;
+    return { channelId: id, liveVideoId: videoId, onAir: Boolean(videoId) };
+  });
 
 // The route list is behind a 60s TTL cache, so every fixture has to exist before
 // the first request — writing channels afterwards would read a stale list.
@@ -114,4 +128,42 @@ test('an inactive or unknown channel slug is a 404', async () => {
   assert.strictEqual(inactive.status, 404);
   const missing = await request(app).get('/catalog/channels/never-existed');
   assert.strictEqual(missing.status, 404);
+});
+
+test('a channel that is on air is embedded by its own current stream id', async () => {
+  airtime.clear();
+  airtime.set('UCDTHLb5sWwIGXwB8Yz9NvAg', 'abcdefghijk');
+
+  const res = await request(app).get('/catalog/channels/ebc');
+  assert.strictEqual(res.body.channel.onAir, true);
+  assert.strictEqual(res.body.channel.liveVideoId, 'abcdefghijk');
+  assert.strictEqual(res.body.channel.embeds.live, 'https://www.youtube.com/embed/abcdefghijk?autoplay=1');
+});
+
+test('a lookup that could not be completed is unknown, never off air', async () => {
+  airtime.clear();
+
+  const res = await request(app).get('/catalog/channels/ebc');
+  assert.strictEqual(res.body.channel.onAir, null);
+  assert.strictEqual(res.body.channel.liveVideoId, null);
+  assert.match(res.body.channel.embeds.live, /live_stream\?channel=UCDTHLb5/);
+});
+
+test('the live batch answers by slug and omits what it cannot stream', async () => {
+  airtime.clear();
+  airtime.set('UCnuyZ9i4REUby4dmFKtzzVA', 'x1x2x3x4x5x');
+  airtime.set('UCBZrJLnGdJTcDig3FTWp5FQ', null);
+
+  const res = await request(app).get('/catalog/channels/live?slugs=aljazeera,sheger-fm,no-stream,never-existed');
+  assert.strictEqual(res.status, 200);
+  const bySlug = Object.fromEntries(res.body.statuses.map((s) => [s.slug, s]));
+  assert.deepStrictEqual(Object.keys(bySlug).sort(), ['aljazeera', 'sheger-fm']);
+  assert.deepStrictEqual(bySlug.aljazeera, { slug: 'aljazeera', onAir: true, liveVideoId: 'x1x2x3x4x5x' });
+  assert.strictEqual(bySlug['sheger-fm'].onAir, false);
+});
+
+test('the live batch with nothing asked for is an empty answer, not an error', async () => {
+  const res = await request(app).get('/catalog/channels/live');
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual(res.body, { statuses: [] });
 });

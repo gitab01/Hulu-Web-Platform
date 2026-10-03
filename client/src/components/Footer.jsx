@@ -63,6 +63,34 @@ export default function Footer() {
           </div>
 
           <div className="foot-col">
+            <span className="eyebrow">Live TV</span>
+            <ul>
+              <li>
+                <Link to={'/live?country=Ethiopia&kind=tv'}>Ethiopian television</Link>
+              </li>
+              <li>
+                <Link to={'/live?country=Ethiopia&kind=radio'}>Ethiopian radio</Link>
+              </li>
+              <li>
+                <Link to="/live?category=News">News</Link>
+              </li>
+              <li>
+                <Link to="/live?category=Sports">Sports</Link>
+              </li>
+              <li>
+                <Link to="/live?category=Documentary">Documentary</Link>
+              </li>
+              <li>
+                <Link to="/live?category=Kids">Kids</Link>
+              </li>
+              <li>
+                <Link to="/live?category=Music">Music</Link>
+              </li>
+            </ul>
+            <p className="hint">Every one of these opens the broadcaster&apos;s own public stream, and none of them needs a plan.</p>
+          </div>
+
+          <div className="foot-col">
             <span className="eyebrow">Company</span>
             <ul>
               <li>

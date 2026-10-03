@@ -1,14 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ChevronRight, LogOut, Menu, Search, User, X } from 'lucide-react';
+import { ChevronRight, LogOut, Menu, Moon, Search, Sun, User, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { applyTheme, preferredTheme } from '../theme';
 import Brand from './Brand';
+
+const LINKS = [
+  { to: '/', label: 'Home', end: true },
+  { to: '/live', label: 'Live TV' },
+  { to: '/about', label: 'About' },
+  { to: '/contact', label: 'Contact' },
+];
 
 export default function Navbar() {
   const { user, entitled, logout } = useAuth();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
+  // index.html has already decided before the first paint, so the bar starts on it.
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || preferredTheme());
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   function onSearch(e) {
     e.preventDefault();
@@ -36,6 +50,26 @@ export default function Navbar() {
     </form>
   );
 
+  // One letter beats an icon in a bar this quiet, and it is the member's own initial.
+  const initial = (user?.displayName || user?.email || '?').trim().charAt(0).toUpperCase();
+
+  const account = user ? (
+    <Link to="/account" className="nav-account" onClick={() => setOpen(false)}>
+      <span className="nav-avatar" aria-hidden="true">
+        {initial}
+      </span>
+      <span className="nav-account-copy">
+        <span className="nav-account-name">{user.displayName || user.email}</span>
+        <span className={`plan-tag${entitled ? ' plan-tag--live' : ''}`}>{entitled ? user.plan || 'Member' : 'No plan'}</span>
+      </span>
+    </Link>
+  ) : (
+    <Link to="/signin" className="btn btn-sm nav-signin" onClick={() => setOpen(false)}>
+      <User aria-hidden="true" />
+      Sign in
+    </Link>
+  );
+
   return (
     <header className="navbar">
       <div className="navbar-inner">
@@ -43,13 +77,12 @@ export default function Navbar() {
           <Brand />
         </Link>
 
-        <nav className="nav-links">
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          <NavLink to="/live">Live TV</NavLink>
-          <NavLink to="/about">About</NavLink>
-          <NavLink to="/account">Account</NavLink>
+        <nav className="nav-links" aria-label="Main">
+          {LINKS.map((l) => (
+            <NavLink key={l.to} to={l.to} end={l.end}>
+              {l.label}
+            </NavLink>
+          ))}
           {!entitled && <NavLink to="/subscribe">Plans</NavLink>}
         </nav>
 
@@ -57,25 +90,20 @@ export default function Navbar() {
         {search}
 
         <div className="nav-actions">
-          {user ? (
-            <>
-              <span className="name">
-                <User className="name-icon" aria-hidden="true" />
-                <span className="name-text">{user.displayName || user.email}</span>
-              </span>
-              <span className={`plan-tag${entitled ? ' plan-tag--live' : ''}`}>
-                {entitled ? user.plan || 'Member' : 'No plan'}
-              </span>
-              <button className="btn btn-ghost btn-sm nav-signout" onClick={signOut}>
-                <LogOut aria-hidden="true" />
-                Sign out
-              </button>
-            </>
-          ) : (
-            <Link to="/signin" className="btn btn-sm">
-              Sign in
-            </Link>
+          {account}
+          {user && (
+            <button className="icon-btn nav-signout" onClick={signOut} aria-label="Sign out" title="Sign out">
+              <LogOut aria-hidden="true" />
+            </button>
           )}
+          <button
+            className="icon-btn theme-toggle"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            title={theme === 'dark' ? 'Light' : 'Dark'}
+          >
+            {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+          </button>
           <button
             className="menu-toggle"
             onClick={() => setOpen((v) => !v)}
@@ -89,22 +117,27 @@ export default function Navbar() {
 
       <div className="nav-sheet" hidden={!open}>
         {search}
-        <NavLink to="/" end onClick={() => setOpen(false)}>
-          Home
-          <ChevronRight aria-hidden="true" />
-        </NavLink>
-        <NavLink to="/live" onClick={() => setOpen(false)}>
-          Live TV
-          <ChevronRight aria-hidden="true" />
-        </NavLink>
-        <NavLink to="/about" onClick={() => setOpen(false)}>
-          About
-          <ChevronRight aria-hidden="true" />
-        </NavLink>
-        <NavLink to="/contact" onClick={() => setOpen(false)}>
-          Contact
-          <ChevronRight aria-hidden="true" />
-        </NavLink>
+        <div className="nav-sheet-user">
+          {user ? (
+            <>
+              <span className="nav-avatar" aria-hidden="true">
+                {initial}
+              </span>
+              <span>
+                <b>{user.displayName || user.email}</b>
+                <span className="slate">{entitled ? `${user.plan || 'Member'} plan` : 'No active plan'}</span>
+              </span>
+            </>
+          ) : (
+            <span className="slate">Watching as a guest — sign in to keep your place</span>
+          )}
+        </div>
+        {LINKS.map((l) => (
+          <NavLink key={l.to} to={l.to} end={l.end} onClick={() => setOpen(false)}>
+            {l.label}
+            <ChevronRight aria-hidden="true" />
+          </NavLink>
+        ))}
         <NavLink to="/account" onClick={() => setOpen(false)}>
           Account
           <ChevronRight aria-hidden="true" />
@@ -121,10 +154,16 @@ export default function Navbar() {
             <ChevronRight aria-hidden="true" />
           </button>
         ) : (
-          <NavLink to="/signup" onClick={() => setOpen(false)}>
-            Create an account
-            <ChevronRight aria-hidden="true" />
-          </NavLink>
+          <>
+            <NavLink to="/signin" onClick={() => setOpen(false)}>
+              Sign in
+              <ChevronRight aria-hidden="true" />
+            </NavLink>
+            <NavLink to="/signup" onClick={() => setOpen(false)}>
+              Create an account
+              <ChevronRight aria-hidden="true" />
+            </NavLink>
+          </>
         )}
       </div>
     </header>

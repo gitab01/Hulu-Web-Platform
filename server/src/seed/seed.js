@@ -429,22 +429,37 @@ async function seedCatalogue() {
   await disconnectDb();
 }
 
+/** The line-up ships with the code, so a database seeded under an older release is
+ *  quietly behind it. Extra rows already stored do not show up here, but seedChannels()
+ *  deletes what the slate no longer lists.
+ */
+async function missingChannels() {
+  const stored = new Set(await Channel.distinct('slug'));
+  return CHANNELS.filter((c) => !stored.has(c.slug));
+}
+
 /**
  * A deployed API pointed at an empty database serves an empty site: no rows on the
  * home page and a Live TV page with no channels. Both of those come from lists
  * reviewed and shipped with the code, so boot fills them in rather than waiting for
- * someone to run a seed script against production. Accounts, subscriptions and watch
- * history are left alone, and the connection stays open for the server to use.
+ * someone to run a seed script against production — and the same check catches a
+ * database that is only behind the slate. Accounts, subscriptions and watch history
+ * are left alone, and the connection stays open for the server to use.
  */
 async function ensureCatalogue() {
   const [channels, titles] = await Promise.all([Channel.countDocuments({}), Title.countDocuments({})]);
-  if (channels && titles) return;
+  const missing = await missingChannels();
+  if (channels && titles && !missing.length) return;
 
   if (!channels) {
     const n = await seedChannels();
     const local = CHANNELS.filter((c) => c.country === 'Ethiopia').length;
     console.log(`[boot] the live line-up was empty — loaded ${n} channels (${local} Ethiopian)`);
+  } else if (missing.length) {
+    const n = await seedChannels();
+    console.log(`[boot] the stored line-up was behind the shipped one — added ${missing.length} channels, now ${n}`);
   }
+
   if (!titles) {
     const docs = await upsertCatalogue(await loadCatalogue());
     console.log(`[boot] the catalogue was empty — loaded ${docs.length} titles`);

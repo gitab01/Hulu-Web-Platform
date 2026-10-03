@@ -12,7 +12,7 @@ const mongoose = require('mongoose');
  * different from the VOD catalogue, where we serve the media ourselves through
  * /player/segment and gate it on an active plan.
  */
-const CHANNEL_CATEGORIES = ['News', 'Entertainment', 'Movies', 'Sports', 'Music', 'Kids', 'Documentary'];
+const CHANNEL_CATEGORIES = ['News', 'Entertainment', 'Movies', 'Sports', 'Music', 'Kids', 'Documentary', 'Religion'];
 
 const channelSchema = new mongoose.Schema(
   {

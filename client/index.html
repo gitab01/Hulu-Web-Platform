@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" />
+    <script>
+      // Runs before the sheet paints: a dark device must not get a white first frame.
+      // React reads the attribute back rather than resolving the theme a second time.
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem('theme');
+        } catch (e) {
+          /* storage blocked: fall through to the device preference */
+        }
+        var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').content = dark ? '#000000' : '#ffffff';
+      })();
+    </script>
     <meta
       name="description"
       content="Streamline IPTV — television from every country, live and on demand. Ethiopian originals, live broadcasters worldwide and an international catalogue on one full-stack platform: JWT auth, entitlement-checked signed playback and hybrid recommendations. Built in Ethiopia."

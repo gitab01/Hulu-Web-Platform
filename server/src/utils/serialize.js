@@ -47,12 +47,20 @@ function titleDetail(t) {
  * embed grammar. `latest` is the fallback for the (ordinary) case where the
  * broadcaster is not live at that moment: a channel's uploads playlist is its own
  * id with the UC prefix swapped for UU.
+ *
+ * `liveVideoId` is what the caller resolved for this moment (see
+ * services/liveStatus). When it is known the embed opens that stream by id; when it
+ * is not, the address still goes to the channel's live_stream endpoint, but `onAir`
+ * is false and the client explains rather than painting black.
  */
-function embedUrls(youtubeChannelId) {
+function embedUrls(youtubeChannelId, liveVideoId) {
   if (!youtubeChannelId) return null;
   const uploads = youtubeChannelId.startsWith('UC') ? `UU${youtubeChannelId.slice(2)}` : '';
+  const live = liveVideoId
+    ? `https://www.youtube.com/embed/${encodeURIComponent(liveVideoId)}?autoplay=1`
+    : `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(youtubeChannelId)}&autoplay=1`;
   return {
-    live: `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(youtubeChannelId)}&autoplay=1`,
+    live,
     latest: uploads ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(uploads)}&autoplay=1` : '',
     watch: `https://www.youtube.com/channel/${encodeURIComponent(youtubeChannelId)}/live`,
   };
@@ -75,8 +83,16 @@ function channelSummary(c) {
   };
 }
 
-function channelDetail(c) {
-  return { ...channelSummary(c), embeds: embedUrls(c.youtubeChannelId), homepageUrl: c.homepageUrl };
+function channelDetail(c, liveVideoId) {
+  return {
+    ...channelSummary(c),
+    embeds: embedUrls(c.youtubeChannelId, liveVideoId),
+    liveVideoId: liveVideoId || null,
+    // true on air, false definitely not, null when YouTube could not be read — the
+    // client explains the first two and stays quiet about the third.
+    onAir: liveVideoId === undefined ? null : Boolean(liveVideoId),
+    homepageUrl: c.homepageUrl,
+  };
 }
 
 module.exports = { titleSummary, titleDetail, channelSummary, channelDetail };

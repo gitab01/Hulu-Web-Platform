@@ -121,6 +121,7 @@ export const catalog = {
     return api(`/catalog/channels${qs ? `?${qs}` : ''}`);
   },
   channel: (slug) => api(`/catalog/channels/${slug}`),
+  channelsLive: (slugs) => api(`/catalog/channels/live?slugs=${(slugs || []).map(encodeURIComponent).join(',')}`),
 };
 
 export const player = {
