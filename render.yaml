@@ -28,12 +28,13 @@ services:
         generateValue: true
       - key: ACCESS_TOKEN_TTL
         value: 15m
-      # The deployed Vercel client origin. Change here (and re-apply the blueprint) if you
-      # rename the Vercel project, otherwise leave as-is.
+      # The deployed Vercel client origins. CORS_ORIGIN is a comma-separated allowlist:
+      # the service answers on both vercel.app hostnames, so either URL can be shared.
+      # FRONTEND_URL is the canonical one (billing redirects go there).
       - key: CORS_ORIGIN
-        value: https://client-orpin-xi.vercel.app
+        value: https://streamline-ip-tv.vercel.app,https://client-orpin-xi.vercel.app
       - key: FRONTEND_URL
-        value: https://client-orpin-xi.vercel.app
+        value: https://streamline-ip-tv.vercel.app
       # API_PUBLIC_URL is intentionally omitted: the app derives the playback-URL host
       # from the incoming request (Render's own domain), so it needs no manual value.
       # Blank Stripe key => mock billing, fully usable. Add test keys to switch to real Stripe.
