@@ -3,32 +3,52 @@ import { Link, useParams } from 'react-router-dom';
 import { Play, RefreshCw } from 'lucide-react';
 import { catalog } from '../api/client';
 import ChannelTile from '../components/ChannelTile';
+import LiveEmbed from '../components/LiveEmbed';
 import WarmUp from '../components/WarmUp';
+
+/**
+ * What the player said about the video in the frame. The server cannot know whether
+ * a channel is streaming — YouTube answers a server's question about a channel page
+ * with an empty shell — so this page reports only what the player itself confirmed,
+ * and says nothing until it has.
+ */
+function statusPill(status) {
+  if (!status) return null;
+  const copy = {
+    live: 'On air now',
+    vod: 'Latest upload',
+    blocked: 'Not embeddable here',
+    unknown: 'Playing from the broadcaster',
+  }[status.kind];
+  return (
+    <span className={`status-pill${status.kind === 'live' ? ' status-pill--on' : ''}`}>
+      {status.kind === 'live' && <span className="status-dot" aria-hidden="true" />}
+      {copy}
+    </span>
+  );
+}
 
 export default function ChannelPage() {
   const { slug } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [nonce, setNonce] = useState(0);
-  // The embed only loads on request: an off-air live stream is better explained
-  // than autoplayed, and a phone should not download a video it was not asked for.
+  // The embed only loads on request: a phone should not download a video it was not
+  // asked for, and the broadcaster's title is worth showing before it starts.
   const [started, setStarted] = useState(false);
-  const [mode, setMode] = useState('live');
+  const [mode, setMode] = useState('stream');
+  const [status, setStatus] = useState(null);
 
   useEffect(() => {
     let alive = true;
     setData(null);
     setError(null);
     setStarted(false);
+    setMode('stream');
+    setStatus(null);
     catalog
       .channel(slug)
-      .then((d) => {
-        if (!alive) return;
-        setData(d);
-        // The answer that matters for what opens: the broadcaster's own current
-        // stream if it has one, its published uploads if it does not.
-        setMode(d.channel.onAir || !d.channel.embeds?.latest ? 'live' : 'latest');
-      })
+      .then((d) => alive && setData(d))
       .catch((e) => alive && setError(e.status === 404 ? 'no such channel' : e.message));
     return () => {
       alive = false;
@@ -61,11 +81,10 @@ export default function ChannelPage() {
   }
 
   const { channel, related } = data;
-  const embed = mode === 'live' ? channel.embeds?.live : channel.embeds?.latest;
-  // Living up to the badge is the whole point: a live_stream embed with nothing on
-  // air paints a black rectangle, which reads as a broken player, not a closed
-  // studio. So live only opens when the channel is actually broadcasting.
-  const liveBlocked = mode === 'live' && channel.onAir === false;
+  const embed = mode === 'latest' ? channel.embeds?.latest : channel.embeds?.stream;
+  // A frame the broadcaster refused is not worth showing: say so and hand over the
+  // link that does work.
+  const refused = status && status.kind === 'blocked';
 
   return (
     <article className="container live">
@@ -86,10 +105,7 @@ export default function ChannelPage() {
         </div>
         {channel.embeds && (
           <div className="live-status">
-            <span className={`status-pill${channel.onAir === true ? ' status-pill--on' : ''}`}>
-              {channel.onAir === true && <span className="status-dot" aria-hidden="true" />}
-              {channel.onAir === true ? 'On air now' : channel.onAir === false ? 'Off air' : 'Live status unconfirmed'}
-            </span>
+            {started && statusPill(status)}
             <button type="button" className="live-recheck" onClick={reload}>
               <RefreshCw aria-hidden="true" />
               Check again
@@ -100,37 +116,23 @@ export default function ChannelPage() {
 
       {channel.embeds ? (
         <div className="live-frame">
-          {started && embed && !liveBlocked ? (
-            <iframe
-              className="live-embed"
-              src={embed}
-              title={`${channel.name} on ${channel.kind === 'radio' ? 'radio' : 'live television'}`}
-              allow="autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-            />
-          ) : liveBlocked ? (
+          {started && embed && !refused ? (
+            <LiveEmbed src={embed} title={`${channel.name} on ${channel.kind === 'radio' ? 'radio' : 'television'}`} onStatus={setStatus} />
+          ) : refused ? (
             <div className="live-gate">
               <div className="live-gate-copy">
-                <span className="eyebrow">Not broadcasting</span>
-                <h2>{channel.name} is off air right now</h2>
+                <span className="eyebrow">Refused by the broadcaster</span>
+                <h2>{channel.name} does not allow its video to play here</h2>
                 <p>
-                  There is no live stream to open, so nothing is played rather than an empty frame. Switch to its latest
-                  published videos, or open the broadcaster&apos;s own channel to see what it has on.
+                  Some broadcasters switch off playback inside other websites. Nothing is re-hosted to work around that, so
+                  the channel&apos;s own address is the way to watch it.
                 </p>
               </div>
               <div className="live-gate-actions">
-                {channel.embeds.latest && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setMode('latest');
-                      setStarted(true);
-                    }}
-                  >
-                    <Play aria-hidden="true" />
-                    Play the latest videos
-                  </button>
-                )}
+                <a className="btn btn-primary" href={channel.embeds.watch} target="_blank" rel="noopener noreferrer">
+                  <Play aria-hidden="true" />
+                  Open on the broadcaster&apos;s channel
+                </a>
                 <button className="btn btn-ghost" onClick={reload}>
                   <RefreshCw aria-hidden="true" />
                   Check again
@@ -142,18 +144,18 @@ export default function ChannelPage() {
               <div className="live-gate-copy">
                 <span className="eyebrow">
                   {channel.kind === 'radio' ? 'Radio stream' : 'Television stream'}
-                  {channel.onAir ? ' · on air' : ''}
+                  {channel.streamTitle ? ` · ${channel.streamTitle}` : ''}
                 </span>
                 <h2>Nothing plays until you ask</h2>
                 <p>
-                  {mode === 'live'
-                    ? `This opens ${channel.name}'s own published stream, live as it is broadcast.`
-                    : `This opens the videos ${channel.name} has published most recently.`}
+                  {mode === 'stream'
+                    ? `This opens the video ${channel.name} has published most recently. If the channel is broadcasting live, that is what plays, and the label above the player says so.`
+                    : `This opens the videos ${channel.name} has published, most recent first.`}
                 </p>
               </div>
               <button className="btn btn-primary" onClick={() => setStarted(true)}>
                 <Play aria-hidden="true" />
-                {mode === 'live' ? 'Start the live stream' : 'Play the latest videos'}
+                {mode === 'stream' ? 'Start playing' : 'Play the latest videos'}
               </button>
             </div>
           )}
@@ -173,14 +175,15 @@ export default function ChannelPage() {
           <div className="segmented" role="group" aria-label="What to play">
             <button
               type="button"
-              className={mode === 'live' ? 'on' : ''}
-              aria-pressed={mode === 'live'}
+              className={mode === 'stream' ? 'on' : ''}
+              aria-pressed={mode === 'stream'}
               onClick={() => {
-                setMode('live');
+                setMode('stream');
+                setStatus(null);
                 setStarted(false);
               }}
             >
-              {channel.onAir ? 'Live now' : 'Live'}
+              Channel stream
             </button>
             {channel.embeds.latest && (
               <button
@@ -189,6 +192,7 @@ export default function ChannelPage() {
                 aria-pressed={mode === 'latest'}
                 onClick={() => {
                   setMode('latest');
+                  setStatus(null);
                   setStarted(false);
                 }}
               >
@@ -203,9 +207,9 @@ export default function ChannelPage() {
       )}
 
       <p className="live-note">
-        Streams here are embedded from each broadcaster and stay under their control, so picture, rights and availability
-        follow whatever they publish. No subscription is needed to watch live television — plans gate the on-demand catalogue
-        we stream ourselves.
+        Video here is played from each broadcaster and stays under their control, so picture, rights and availability follow
+        whatever they publish. No subscription is needed to watch live television — plans gate the on-demand catalogue we
+        stream ourselves.
       </p>
 
       {related?.length > 0 && (

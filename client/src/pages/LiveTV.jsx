@@ -17,10 +17,6 @@ const ORIGINS = [
   { key: 'International', label: 'International' },
 ];
 
-// How many tiles the on-air check is asked for: enough to light up the top of the
-// grid, few enough that the API answers before its own deadline.
-const LIVE_PROBE = 12;
-
 export default function LiveTV() {
   // The filters live in the URL so a footer link or a shared link opens the same view.
   const [params, setParams] = useSearchParams();
@@ -30,7 +26,6 @@ export default function LiveTV() {
 
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  const [live, setLive] = useState({});
   const [nonce, setNonce] = useState(0);
 
   const reload = () => setNonce((n) => n + 1);
@@ -56,28 +51,6 @@ export default function LiveTV() {
 
   const channels = useMemo(() => data?.channels || [], [data]);
 
-  // Asked for after the tiles have painted, and never blocking them: a channel with
-  // no answer simply carries no badge rather than a wrong one.
-  useEffect(() => {
-    let alive = true;
-    setLive({});
-    const slugs = channels.filter((c) => c.hasStream).slice(0, LIVE_PROBE).map((c) => c.slug);
-    if (!slugs.length) return undefined;
-    catalog
-      .channelsLive(slugs)
-      .then((d) => {
-        if (!alive) return;
-        setLive(Object.fromEntries((d.statuses || []).filter((s) => s.onAir != null).map((s) => [s.slug, s.onAir])));
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [channels]);
-
-  const shown = channels.map((c) => (c.slug in live ? { ...c, onAir: live[c.slug] } : c));
-  const onAirCount = shown.filter((c) => c.onAir === true).length;
-
   return (
     <div className="container live">
       <header className="live-head">
@@ -89,9 +62,9 @@ export default function LiveTV() {
           </h1>
         </div>
         <p className="live-note">
-          Every channel opens the broadcaster&apos;s own public stream — nothing here is re-hosted. A live badge means the
-          channel is broadcasting right now; when it is not, its latest published videos play instead. Live line-ups change
-          without notice, so no schedule is promised.
+          Every channel plays its broadcaster&apos;s own published video — nothing here is re-hosted. The player says
+          whether what is on screen is live at this moment or the channel&apos;s most recent upload, and every page links to
+          the broadcaster&apos;s own live address. Line-ups change without notice, so no schedule is promised.
         </p>
       </header>
 
@@ -169,17 +142,16 @@ export default function LiveTV() {
         </div>
       )}
 
-      {shown.length > 0 && (
+      {channels.length > 0 && (
         <>
           <div className="live-count">
-            {shown.length} {shown.length === 1 ? 'channel' : 'channels'}
+            {channels.length} {channels.length === 1 ? 'channel' : 'channels'}
             {category !== 'All' && ` in ${category}`}
             {country && ` · ${country === 'Ethiopia' ? 'Ethiopian' : 'international'}`}
             {kind && ` · ${kind === 'tv' ? 'TV only' : 'radio only'}`}
-            {onAirCount > 0 && ` · ${onAirCount} on air`}
           </div>
           <div className="channel-grid">
-            {shown.map((c) => (
+            {channels.map((c) => (
               <ChannelTile channel={c} key={c.slug} />
             ))}
           </div>

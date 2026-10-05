@@ -712,17 +712,6 @@ h2 svg,
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
   background: var(--plate-chip); color: var(--plate-fg); padding: 3px 7px; border-radius: 999px;
 }
-/* The badge only appears while the broadcaster is actually broadcasting, so it is
-   the one place this grid carries state colour. Top-right keeps it clear of the
-   radio chip and of whatever the logo draws there. */
-.channel-live {
-  position: absolute; right: 8px; top: 8px;
-  display: inline-flex; align-items: center; gap: 5px;
-  background: var(--tile); border: 1px solid var(--tile-ink); border-radius: 999px;
-  padding: 3px 7px; color: var(--tile-ink);
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-}
-.channel-live-dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--signal); }
 .channel-name {
   margin-top: 10px; color: var(--ink); font-family: var(--display); font-weight: 700;
   font-size: 14px; letter-spacing: -0.015em;
@@ -742,6 +731,13 @@ h2 svg,
   border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; background: var(--paper);
 }
 .live-embed { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: var(--plate); }
+/* The API mounts its player inside this wrapper, so the frame around it stays ours. */
+.live-player { display: block; }
+.live-player-frame > iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: var(--plate); }
+.live-player-note {
+  margin: 0; padding: 12px clamp(14px, 3vw, 20px); border-top: 1px solid var(--rule);
+  color: var(--graphite); font-size: 13px; line-height: 1.5;
+}
 .live-gate {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center;
   padding: clamp(20px, 4vw, 40px); min-height: 220px;
@@ -907,8 +903,6 @@ footer a:hover { color: var(--ink); text-decoration: underline; text-underline-o
   .channel-mark { font-size: clamp(11px, 3.2vw, 15px); padding: 0 6px; }
   .channel-name { font-size: 12px; margin-top: 8px; }
   .channel-sub { font-size: 9px; }
-  .channel-live { right: 5px; top: 5px; gap: 4px; padding: 2px 5px; font-size: 9px; }
-  .channel-live-dot { width: 5px; height: 5px; }
   .live-filters { flex-direction: column; align-items: flex-start; }
   .live-filters .segmented { width: 100%; }
   .segmented button { flex: 1 1 0; }

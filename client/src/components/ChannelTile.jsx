@@ -26,13 +26,6 @@ export default function ChannelTile({ channel }) {
           <span className="channel-mark">{channel.name}</span>
         )}
         {channel.kind === 'radio' && <span className="channel-kind">Radio</span>}
-        {/* Only on air is worth a badge: an off-air chip on most of the grid would shout. */}
-        {channel.onAir === true && (
-          <span className="channel-live">
-            <span className="channel-live-dot" aria-hidden="true" />
-            Live
-          </span>
-        )}
       </div>
       <div className="channel-name">{channel.name}</div>
       <div className="channel-sub">

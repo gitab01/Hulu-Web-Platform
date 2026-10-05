@@ -44,24 +44,32 @@ function titleDetail(t) {
 /**
  * Live TV channels. A channel stores only the broadcaster's own channel id; the
  * embed addresses are derived here so the client never has to know YouTube's
- * embed grammar. `latest` is the fallback for the (ordinary) case where the
- * broadcaster is not live at that moment: a channel's uploads playlist is its own
- * id with the UC prefix swapped for UU.
+ * embed grammar.
  *
- * `liveVideoId` is what the caller resolved for this moment (see
- * services/liveStatus). When it is known the embed opens that stream by id; when it
- * is not, the address still goes to the channel's live_stream endpoint, but `onAir`
- * is false and the client explains rather than painting black.
+ * An embed needs a video id: `embed/live_stream?channel=…`, which used to open
+ * whatever a channel was streaming, now answers "This video is unavailable" for
+ * every channel, live or not. So `stream` is the broadcaster's most recent
+ * published video (see services/channelStreams, which reads the channel's own
+ * feed), falling back to its uploads playlist when the feed did not answer — a
+ * playlist player always has something to show. `latest` is that playlist either
+ * way: a channel's uploads list is its own id with the UC prefix swapped for UU.
+ *
+ * Whether the video in the frame is live at this moment is not something this
+ * server can read any more — YouTube serves channel pages to non-browser clients as
+ * an empty shell, and the feeds answer only with what a channel has published. The
+ * player answers it instead, from the viewer's own connection, where the question is
+ * answerable.
  */
-function embedUrls(youtubeChannelId, liveVideoId) {
+function embedUrls(youtubeChannelId, candidate) {
   if (!youtubeChannelId) return null;
   const uploads = youtubeChannelId.startsWith('UC') ? `UU${youtubeChannelId.slice(2)}` : '';
-  const live = liveVideoId
-    ? `https://www.youtube.com/embed/${encodeURIComponent(liveVideoId)}?autoplay=1`
-    : `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(youtubeChannelId)}&autoplay=1`;
+  const latest = uploads ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(uploads)}&autoplay=1` : '';
+  const stream = candidate?.videoId
+    ? `https://www.youtube.com/embed/${encodeURIComponent(candidate.videoId)}?autoplay=1&rel=0`
+    : latest;
   return {
-    live,
-    latest: uploads ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(uploads)}&autoplay=1` : '',
+    stream,
+    latest,
     watch: `https://www.youtube.com/channel/${encodeURIComponent(youtubeChannelId)}/live`,
   };
 }
@@ -83,14 +91,14 @@ function channelSummary(c) {
   };
 }
 
-function channelDetail(c, liveVideoId) {
+function channelDetail(c, candidate) {
   return {
     ...channelSummary(c),
-    embeds: embedUrls(c.youtubeChannelId, liveVideoId),
-    liveVideoId: liveVideoId || null,
-    // true on air, false definitely not, null when YouTube could not be read — the
-    // client explains the first two and stays quiet about the third.
-    onAir: liveVideoId === undefined ? null : Boolean(liveVideoId),
+    embeds: embedUrls(c.youtubeChannelId, candidate),
+    // What is in the frame, as far as the broadcaster's own feed can say. Whether it
+    // is live right now is answered by the player, not here.
+    streamVideoId: candidate?.videoId || null,
+    streamTitle: candidate?.title || null,
     homepageUrl: c.homepageUrl,
   };
 }

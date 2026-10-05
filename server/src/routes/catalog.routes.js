@@ -10,7 +10,7 @@ const { asyncHandler } = require('../middleware/error');
 const { titleSummary, titleDetail, channelSummary, channelDetail } = require('../utils/serialize');
 const recs = require('../services/recommendation');
 const rowCache = require('../services/rowCache');
-const liveStatus = require('../services/liveStatus');
+const channelStreams = require('../services/channelStreams');
 
 const router = express.Router();
 const ROW_TTL = 30 * 1000; // short: browse is read-heavy and repeatable
@@ -215,33 +215,10 @@ router.get(
 );
 
 /**
- * On-air badges for the grid, asked for after the tiles have painted so a slow
- * lookup never delays the list. Only the first handful of slugs are answered: the
- * rest simply carry no badge, which the client renders as silence rather than as
- * "off air".
+ * One channel, with the address of what its broadcaster has published most recently
+ * resolved from the channel's own feed. Cached in the service, so opening a channel
+ * does not re-read a feed on every visit.
  */
-router.get(
-  '/channels/live',
-  apiLimiter,
-  asyncHandler(async (req, res) => {
-    const slugs = String(req.query.slugs || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 12);
-    if (!slugs.length) return res.json({ statuses: [] });
-
-    const rows = await Channel.find({ slug: { $in: slugs }, active: true }).select('slug youtubeChannelId');
-    const byChannel = new Map(rows.filter((r) => r.youtubeChannelId).map((r) => [r.youtubeChannelId, r.slug]));
-    const found = await liveStatus.statuses([...byChannel.keys()]);
-    res.json({
-      statuses: found
-        .filter((s) => byChannel.has(s.channelId))
-        .map((s) => ({ slug: byChannel.get(s.channelId), onAir: s.onAir, liveVideoId: s.liveVideoId })),
-    });
-  })
-);
-
 router.get(
   '/channels/:slug',
   apiLimiter,
@@ -249,14 +226,11 @@ router.get(
     const doc = await Channel.findOne({ slug: req.params.slug, active: true });
     if (!doc) return res.status(404).json({ error: { code: 'not_found', message: 'Channel not found' } });
 
-    // Resolved per request and cached in the service, so the embed opens whatever
-    // the broadcaster is streaming now instead of a black frame. Handed over
-    // unmodified: an unanswered lookup is unknown, not off air.
-    const liveVideoId = await liveStatus.liveVideoId(doc.youtubeChannelId);
+    const candidate = await channelStreams.streamCandidate(doc.youtubeChannelId);
 
     const all = await channelsAll();
     const related = all.filter((c) => c.slug !== doc.slug && c.category === doc.category).slice(0, 8);
-    res.json({ channel: channelDetail(doc, liveVideoId), related });
+    res.json({ channel: channelDetail(doc, candidate), related });
   })
 );
 
