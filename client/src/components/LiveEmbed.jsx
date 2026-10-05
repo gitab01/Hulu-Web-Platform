@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * The broadcaster's video in a frame that can tell us what it is.
@@ -8,11 +8,14 @@ import { useEffect, useRef, useState } from 'react';
  * so a stream can only be opened by video id, and the question "is this live?" has
  * to be asked of the player. The IFrame API answers it from the viewer's own
  * connection, which is the only connection that matters: a server in another country
- * asking on the viewer's behalf gets a bot shell instead of a page.
+ * asking on the viewer's behalf gets a bot shell instead of a page. The answer is
+ * only there once the video is running — a broadcast that is on air still reads as
+ * not live while the frame is loading — so it is read from the state changes, not
+ * from the ready event.
  *
  * If the API itself never arrives, the plain iframe is already in the document and
- * still plays; the status then stays unknown, which the page renders as silence
- * rather than as a wrong label.
+ * still plays; the status is then unknown, and the page says only that the video is
+ * the broadcaster's, without claiming anything about whether it is live.
  */
 let apiPromise;
 
@@ -43,12 +46,11 @@ export default function LiveEmbed({ src, title, onStatus }) {
   const hostRef = useRef(null);
   const reportRef = useRef(onStatus);
   reportRef.current = onStatus;
-  const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
     let alive = true;
     let player;
-    setBlocked(false);
+    let last;
 
     const frame = document.createElement('iframe');
     frame.className = 'live-embed';
@@ -58,25 +60,29 @@ export default function LiveEmbed({ src, title, onStatus }) {
     frame.allowFullscreen = true;
     hostRef.current.appendChild(frame);
 
+    // ended, playing, paused — the states where the video is in front of the viewer.
+    const WATCHING = [0, 1, 2];
+    const read = (target) => {
+      if (!alive || !target.getPlayerState || WATCHING.indexOf(target.getPlayerState()) < 0) return;
+      const data = (target.getVideoData && target.getVideoData()) || {};
+      const kind = data.isLive ? 'live' : 'vod';
+      if (kind === last) return;
+      last = kind;
+      reportRef.current({ kind });
+    };
+
     iframeApi()
       .then((YT) => {
         if (!alive) return;
         player = new YT.Player(frame, {
           events: {
-            onReady: (e) => {
-              if (!alive) return;
-              const data = (e.target.getVideoData && e.target.getVideoData()) || {};
-              reportRef.current({
-                kind: data.isLive ? 'live' : 'vod',
-                videoTitle: data.title || null,
-              });
-            },
-            onError: (e) => {
+            onReady: (e) => read(e.target),
+            onStateChange: (e) => read(e.target),
+            onError: () => {
               if (!alive) return;
               // 100: nothing there to play. 150/101: the broadcaster turned
               // embedding off. Either way the frame cannot be trusted.
-              setBlocked(true);
-              reportRef.current({ kind: 'blocked', code: e.data });
+              reportRef.current({ kind: 'blocked' });
             },
           },
         });
@@ -95,11 +101,6 @@ export default function LiveEmbed({ src, title, onStatus }) {
   return (
     <div className="live-player">
       <div ref={hostRef} className="live-player-frame" />
-      {blocked && (
-        <p className="live-player-note" role="status">
-          This broadcaster has not allowed its video to play inside other sites. Open it on the channel to watch.
-        </p>
-      )}
     </div>
   );
 }

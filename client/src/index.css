@@ -734,10 +734,6 @@ h2 svg,
 /* The API mounts its player inside this wrapper, so the frame around it stays ours. */
 .live-player { display: block; }
 .live-player-frame > iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: var(--plate); }
-.live-player-note {
-  margin: 0; padding: 12px clamp(14px, 3vw, 20px); border-top: 1px solid var(--rule);
-  color: var(--graphite); font-size: 13px; line-height: 1.5;
-}
 .live-gate {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center;
   padding: clamp(20px, 4vw, 40px); min-height: 220px;
@@ -747,8 +743,8 @@ h2 svg,
 .live-gate-copy { min-width: 0; }
 .live-gate-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 
-/* The channel page answers the question the grid badge raises: is anything actually
-   broadcasting, and if the answer was taken a minute ago, how do I ask again. */
+/* What the player itself confirmed, next to the button that asks it again: a
+   broadcast that started after this page loaded is invisible until someone re-asks. */
 .live-status { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; }
 .status-pill {
   display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 12px;

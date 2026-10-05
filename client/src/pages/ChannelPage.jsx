@@ -149,7 +149,7 @@ export default function ChannelPage() {
                 <h2>Nothing plays until you ask</h2>
                 <p>
                   {mode === 'stream'
-                    ? `This opens the video ${channel.name} has published most recently. If the channel is broadcasting live, that is what plays, and the label above the player says so.`
+                    ? `This opens the most recent video ${channel.name} has published. Once it starts, the label above the player says whether that video is broadcasting right now or is a finished upload. A channel's own continuous stream is on the broadcaster's channel.`
                     : `This opens the videos ${channel.name} has published, most recent first.`}
                 </p>
               </div>
