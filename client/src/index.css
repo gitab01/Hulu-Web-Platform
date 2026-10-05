@@ -230,7 +230,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.0
 .btn-ghost { border-color: transparent; color: var(--graphite); padding-inline: 6px; }
 .btn-ghost:hover { color: var(--ink); border-color: transparent; }
 .btn-block { width: 100%; }
-.btn-sm { padding: 7px 12px; font-size: 13px; }
+.btn-sm { min-height: 40px; padding: 7px 12px; font-size: 13px; }
 .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 
 /* ---- Icons ----
@@ -460,7 +460,7 @@ h2 svg,
 .spot-track[data-still] .spot + .spot { padding-top: clamp(20px, 3vw, 30px); border-top: 1px solid var(--on-ink-rule); }
 
 /* ---- Rows ---- */
-.row { padding: clamp(20px, 3vw, 34px) 0; }
+.row { padding-block: clamp(20px, 3vw, 34px); }
 .row-head {
   display: flex; align-items: flex-end; gap: 16px; margin-bottom: 14px;
 }
@@ -512,6 +512,12 @@ h2 svg,
   animation: sweep 1.3s infinite;
 }
 @keyframes sweep { to { transform: translateX(100%); } }
+
+/* Naming the wait: a free API sleeps between visitors, and an endless shimmer does not say so. */
+.warmup {
+  margin: 16px 0 0; font-family: var(--mono); font-size: 12px; line-height: 1.6;
+  letter-spacing: 0.02em; color: var(--faint);
+}
 .skel-row { display: flex; gap: 14px; overflow: hidden; }
 .skel-card { width: var(--card-w); flex: 0 0 auto; border: 1px solid var(--rule-soft); border-radius: var(--radius); }
 .skel-poster { aspect-ratio: 16 / 9; }
@@ -640,7 +646,7 @@ h2 svg,
 /* ---- Live TV: a programme guide, not a poster wall ----
    Channel identity is the tile itself, so the grid stays dense and quiet.
    Selected filters use ink like the rest of the system; no signal colour here. */
-.live { padding: clamp(20px, 3vw, 34px) 0 clamp(30px, 6vw, 60px); }
+.live { padding-block: clamp(20px, 3vw, 34px) clamp(30px, 6vw, 60px); }
 .live-head {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 46ch);
   gap: clamp(16px, 3vw, 40px); align-items: end;
@@ -756,7 +762,7 @@ h2 svg,
 .status-pill--on { border-color: var(--ink); color: var(--ink); }
 .status-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--signal); }
 .live-recheck {
-  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 10px;
+  display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 10px;
   border: 1px solid transparent; border-radius: var(--radius); color: var(--graphite);
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
   transition: border-color 140ms ease, color 140ms ease;

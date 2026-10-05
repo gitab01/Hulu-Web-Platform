@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Play, RefreshCw } from 'lucide-react';
 import { catalog } from '../api/client';
 import ChannelTile from '../components/ChannelTile';
+import WarmUp from '../components/WarmUp';
 
 export default function ChannelPage() {
   const { slug } = useParams();
@@ -54,6 +55,7 @@ export default function ChannelPage() {
     return (
       <div className="container" style={{ paddingTop: 'clamp(20px, 4vw, 36px)' }} role="status">
         <div className="skel skel-channel-frame" />
+        <WarmUp />
       </div>
     );
   }

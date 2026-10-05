@@ -4,6 +4,7 @@ import { catalog } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Row from '../components/Row';
 import RowSkeleton from '../components/RowSkeleton';
+import WarmUp from '../components/WarmUp';
 import EthiopiaSpots from '../components/EthiopiaSpots';
 import LiveStrip from '../components/LiveStrip';
 import EthiopiaBanner from '../components/EthiopiaBanner';
@@ -48,6 +49,9 @@ export default function Home() {
 
       {!error && !rows && (
         <>
+          <div className="container">
+            <WarmUp />
+          </div>
           <RowSkeleton />
           <RowSkeleton />
         </>

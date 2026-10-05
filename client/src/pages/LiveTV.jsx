@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Antenna, LayoutGrid, Radio, Tv } from 'lucide-react';
 import { catalog } from '../api/client';
 import ChannelTile from '../components/ChannelTile';
+import WarmUp from '../components/WarmUp';
 
 const KINDS = [
   { key: '', label: 'TV and radio', icon: LayoutGrid },
@@ -30,6 +31,9 @@ export default function LiveTV() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [live, setLive] = useState({});
+  const [nonce, setNonce] = useState(0);
+
+  const reload = () => setNonce((n) => n + 1);
 
   function setParam(key, value) {
     const next = new URLSearchParams(params);
@@ -48,7 +52,7 @@ export default function LiveTV() {
     return () => {
       alive = false;
     };
-  }, [category, kind, country]);
+  }, [category, kind, country, nonce]);
 
   const channels = useMemo(() => data?.channels || [], [data]);
 
@@ -135,18 +139,24 @@ export default function LiveTV() {
         <div className="notice notice--error">
           <h2>The channel list did not load</h2>
           <p>{error}</p>
+          <button className="btn btn-primary" onClick={reload}>
+            Try again
+          </button>
         </div>
       )}
 
       {!data && !error && (
-        <div className="channel-grid">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div className="channel" key={i}>
-              <div className="skel skel-channel" />
-              <div className="skel skel-line" style={{ width: '60%' }} />
-            </div>
-          ))}
-        </div>
+        <>
+          <WarmUp />
+          <div className="channel-grid">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div className="channel" key={i}>
+                <div className="skel skel-channel" />
+                <div className="skel skel-line" style={{ width: '60%' }} />
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {data && !channels.length && !error && (
