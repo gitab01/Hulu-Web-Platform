@@ -7,10 +7,10 @@ import LiveEmbed from '../components/LiveEmbed';
 import WarmUp from '../components/WarmUp';
 
 /**
- * What the player said about the video in the frame. The server cannot know whether
- * a channel is streaming — YouTube answers a server's question about a channel page
- * with an empty shell — so this page reports only what the player itself confirmed,
- * and says nothing until it has.
+ * What the frame holds. The server reads the channel's live-filtered video list, so
+ * a channel that is broadcasting is known before the player loads; the player is
+ * asked anyway, because its answer is the freshest one, and only a true from it is
+ * taken as news.
  */
 function statusPill(status) {
   if (!status) return null;
@@ -160,7 +160,12 @@ export default function ChannelPage() {
         <div className="live-frame">
           {started && embed && !refused ? (
             <>
-              <LiveEmbed src={embed} title={`${channel.name} on ${channel.kind === 'radio' ? 'radio' : 'television'}`} onStatus={setStatus} />
+              <LiveEmbed
+                src={embed}
+                title={`${channel.name} on ${channel.kind === 'radio' ? 'radio' : 'television'}`}
+                knownLive={Boolean(channel.streamOnAir)}
+                onStatus={setStatus}
+              />
               <LiveCaption status={status} channel={channel} />
             </>
           ) : refused ? (
@@ -208,7 +213,7 @@ export default function ChannelPage() {
                 <h2>Nothing plays until you ask</h2>
                 <p>
                   {mode === 'stream'
-                    ? `This opens the most recent video ${channel.name} has published. The label above the player reads "Latest published" and only changes to "On air now" when the player itself confirms a broadcast is in progress.`
+                    ? `This opens whatever ${channel.name} is broadcasting right now. When the channel is off air it opens the most recent video it published instead, and the label above the player says which of the two it found.`
                     : `This opens the videos ${channel.name} has published, most recent first.`}
                 </p>
               </div>

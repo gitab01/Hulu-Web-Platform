@@ -123,21 +123,70 @@ test('an inactive or unknown channel slug is a 404', async () => {
   assert.strictEqual(missing.status, 404);
 });
 
-test('the channel stream is the broadcaster’s most recent published video, by id', async () => {
+test('the channel stream is the broadcaster’s latest video, by id', async () => {
   published.clear();
-  published.set('UCDTHLb5sWwIGXwB8Yz9NvAg', { videoId: 'abcdefghijk', title: 'Evening news' });
+  published.set('UCDTHLb5sWwIGXwB8Yz9NvAg', { videoId: 'abcdefghijk', title: 'Evening news', onAir: false });
 
   const res = await request(app).get('/catalog/channels/ebc');
   assert.strictEqual(res.body.channel.embeds.stream, 'https://www.youtube.com/embed/abcdefghijk?autoplay=1&rel=0');
   assert.strictEqual(res.body.channel.streamVideoId, 'abcdefghijk');
   assert.strictEqual(res.body.channel.streamTitle, 'Evening news');
+  assert.strictEqual(res.body.channel.streamOnAir, false, 'an upload is not a broadcast');
 });
 
-/* An embed asked for by channel rather than by video id answers "This video is
-   unavailable" for every channel, live or not — so the address must never appear,
-   and a feed we could not read has to fall back to something that plays rather than
-   be reported as a channel with nothing on. */
-test('a feed that did not answer falls back to the uploads playlist', async () => {
+/* What a channel is streaming is a different video from what it published last: a
+   24/7 stream is an old upload that never reaches the top of the feed. YouTube's
+   live-filtered list names it, and only its badge says so — a title containing the
+   word live is something a channel writes about its news bulletins too. */
+test('a candidate from the live list reaches the client as on air', async () => {
+  published.clear();
+  published.set('UCDTHLb5sWwIGXwB8Yz9NvAg', { videoId: 'abcdefghijk', title: 'Live from Addis', onAir: true });
+
+  const res = await request(app).get('/catalog/channels/ebc');
+  assert.strictEqual(res.body.channel.streamOnAir, true);
+  assert.strictEqual(res.body.channel.embeds.stream, 'https://www.youtube.com/embed/abcdefghijk?autoplay=1&rel=0');
+});
+
+const lockup = (videoId, badgeStyle, title) => ({
+  lockupViewModel: {
+    contentId: videoId,
+    contentImage: {
+      thumbnailViewModel: {
+        overlays: [{ thumbnailBottomOverlayViewModel: { badges: [{ thumbnailBadgeViewModel: { text: 'LIVE', badgeStyle } }] } }],
+      },
+    },
+    metadata: { lockupMetadataViewModel: { title: { content: title } } },
+  },
+});
+
+test('the live item is read off the badge, in both shapes YouTube serves', () => {
+  assert.deepStrictEqual(
+    channelStreams.liveItem({ contents: [lockup('abcdefghijk', 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE', 'Live from Addis')] }),
+    { videoId: 'abcdefghijk', title: 'Live from Addis', onAir: true }
+  );
+
+  assert.deepStrictEqual(
+    channelStreams.liveItem({
+      contents: [
+        {
+          videoRenderer: {
+            videoId: 'xyz789qwer1',
+            title: { runs: [{ text: 'DW News livestream' }] },
+            badges: [{ metadataBadgeRenderer: { style: 'BADGE_STYLE_TYPE_LIVE', label: 'LIVE' } }],
+          },
+        },
+      ],
+    }),
+    { videoId: 'xyz789qwer1', title: 'DW News livestream', onAir: true }
+  );
+
+  assert.strictEqual(channelStreams.liveItem({ contents: [lockup('abcdefghijk', 'THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT', 'Evening news')] }), null);
+  assert.strictEqual(channelStreams.liveItem({ contents: [] }), null);
+});
+
+/* A feed we could not read has to fall back to something that plays rather than be
+   reported as a channel with nothing on. */
+test('a channel that answered nothing falls back to the uploads playlist', async () => {
   published.clear();
 
   const res = await request(app).get('/catalog/channels/ebc');
@@ -145,15 +194,6 @@ test('a feed that did not answer falls back to the uploads playlist', async () =
   assert.match(res.body.channel.embeds.stream, /videoseries\?list=UUDTHLb5/);
   assert.strictEqual(res.body.channel.streamVideoId, null);
   assert.ok(!res.body.channel.embeds.stream.includes('live_stream'), 'the dead channel-wide embed must not come back');
-});
-
-test('the api does not claim a channel is off air, because it cannot know', async () => {
-  published.clear();
-  published.set('UCDTHLb5sWwIGXwB8Yz9NvAg', null);
-
-  const res = await request(app).get('/catalog/channels/ebc');
-  assert.ok(!('onAir' in res.body.channel), 'on-air is the player’s answer, not the server’s');
-  assert.match(res.body.channel.embeds.stream, /videoseries\?list=UUDTHLb5/);
 });
 
 test('the on-air badge endpoint is gone', async () => {

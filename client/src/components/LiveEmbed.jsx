@@ -5,16 +5,19 @@ import { useEffect, useRef } from 'react';
  *
  * YouTube's channel-wide `embed/live_stream?channel=…` address no longer resolves —
  * it answers "This video is unavailable" whether the channel is streaming or not —
- * so a stream can only be opened by video id, and the question "is this live?" has
- * to be asked of the player. The IFrame API answers it from the viewer's own
- * connection, which is the only connection that matters: a server in another country
- * asking on the viewer's behalf gets a bot shell instead of a page. The answer is
- * inconsistent, though — a broadcast in progress can read as not live — so a true is
- * taken as confirmation and a false as no information at all.
+ * so a stream can only be opened by video id. The server resolves that id from the
+ * channel's own live-filtered video list, which is the broadcast in progress, and
+ * says so with `knownLive`; the frame then starts out labelled on air.
+ *
+ * The player is still asked, because a broadcast can end while someone is watching
+ * and because the server's answer is a moment old by the time it loads. It is
+ * believed in one direction only: `getVideoData().isLive` read true for a live
+ * broadcast in one session and false for ten seconds in another, so a true is an
+ * upgrade and a false is no information at all.
  *
  * If the API itself never arrives, the plain iframe is already in the document and
- * still plays; the status is then unknown, and the page says only that the video is
- * the broadcaster's, without claiming anything about whether it is live.
+ * still plays; the status is then whatever was already known, and the page says only
+ * that the video is the broadcaster's, without claiming anything about live.
  */
 let apiPromise;
 
@@ -41,7 +44,7 @@ function withJsApi(src) {
   return `${src}${join}enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
 }
 
-export default function LiveEmbed({ src, title, onStatus }) {
+export default function LiveEmbed({ src, title, knownLive, onStatus }) {
   const hostRef = useRef(null);
   const reportRef = useRef(onStatus);
   reportRef.current = onStatus;
@@ -51,6 +54,11 @@ export default function LiveEmbed({ src, title, onStatus }) {
     let player;
     let reported;
     const timers = [];
+
+    if (knownLive) {
+      reported = 'live';
+      reportRef.current({ kind: 'live' });
+    }
 
     // The same live broadcast read isLive:true in one session and isLive:false for
     // ten seconds in another, so only a true is worth saying and a false proves nothing.
@@ -98,10 +106,11 @@ export default function LiveEmbed({ src, title, onStatus }) {
         player = new YT.Player(frame, {
           events: {
             onReady: (e) => {
-              read(e.target);
               [800, 2600].forEach((ms) => {
                 timers.push(setTimeout(() => nudge(e.target), ms));
               });
+              if (reported === 'live') return;
+              read(e.target);
               // A later message from the player can carry the flag the first one did not.
               [1500, 4000, 9000, 16000, 26000].forEach((ms) => {
                 timers.push(setTimeout(() => read(e.target), ms));
@@ -126,7 +135,7 @@ export default function LiveEmbed({ src, title, onStatus }) {
       if (player && player.destroy) player.destroy();
       else frame.remove();
     };
-  }, [src, title]);
+  }, [src, title, knownLive]);
 
   if (!src) return null;
 

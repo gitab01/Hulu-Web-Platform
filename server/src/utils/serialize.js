@@ -48,17 +48,16 @@ function titleDetail(t) {
  *
  * An embed needs a video id: `embed/live_stream?channel=…`, which used to open
  * whatever a channel was streaming, now answers "This video is unavailable" for
- * every channel, live or not. So `stream` is the broadcaster's most recent
- * published video (see services/channelStreams, which reads the channel's own
- * feed), falling back to its uploads playlist when the feed did not answer — a
- * playlist player always has something to show. `latest` is that playlist either
- * way: a channel's uploads list is its own id with the UC prefix swapped for UU.
+ * every channel, live or not. So `stream` is whatever services/channelStreams found
+ * for the channel — the broadcast in progress when the channel's live-filtered video
+ * list names one, otherwise its most recent published video — falling back to its
+ * uploads playlist when neither answered, since a playlist player always has
+ * something to show. `latest` is that playlist either way: a channel's uploads list
+ * is its own id with the UC prefix swapped for UU.
  *
- * Whether the video in the frame is live at this moment is not something this
- * server can read any more — YouTube serves channel pages to non-browser clients as
- * an empty shell, and the feeds answer only with what a channel has published. The
- * player answers it instead, from the viewer's own connection, where the question is
- * answerable.
+ * `streamOnAir` carries that distinction to the page. The player is asked anyway,
+ * because a broadcast can end while the frame is open, but the server no longer has
+ * to leave the question entirely to a player whose answer is inconsistent.
  */
 function embedUrls(youtubeChannelId, candidate) {
   if (!youtubeChannelId) return null;
@@ -95,10 +94,11 @@ function channelDetail(c, candidate) {
   return {
     ...channelSummary(c),
     embeds: embedUrls(c.youtubeChannelId, candidate),
-    // What is in the frame, as far as the broadcaster's own feed can say. Whether it
-    // is live right now is answered by the player, not here.
+    // What is in the frame, as YouTube described it a moment ago: the broadcast in
+    // progress when the channel's live list named one, otherwise its latest upload.
     streamVideoId: candidate?.videoId || null,
     streamTitle: candidate?.title || null,
+    streamOnAir: Boolean(candidate?.onAir),
     homepageUrl: c.homepageUrl,
   };
 }
