@@ -9,9 +9,8 @@ import { useEffect, useRef } from 'react';
  * to be asked of the player. The IFrame API answers it from the viewer's own
  * connection, which is the only connection that matters: a server in another country
  * asking on the viewer's behalf gets a bot shell instead of a page. The answer is
- * only there once the video is running — a broadcast that is on air still reads as
- * not live while the frame is loading — so it is read from the state changes, not
- * from the ready event.
+ * inconsistent, though — a broadcast in progress can read as not live — so a true is
+ * taken as confirmation and a false as no information at all.
  *
  * If the API itself never arrives, the plain iframe is already in the document and
  * still plays; the status is then unknown, and the page says only that the video is
@@ -50,7 +49,40 @@ export default function LiveEmbed({ src, title, onStatus }) {
   useEffect(() => {
     let alive = true;
     let player;
-    let last;
+    let reported;
+    const timers = [];
+
+    // The same live broadcast read isLive:true in one session and isLive:false for
+    // ten seconds in another, so only a true is worth saying and a false proves nothing.
+    const read = (source) => {
+      if (!alive || reported === 'live' || reported === 'blocked') return;
+      let data = {};
+      try {
+        data = (source.getVideoData && source.getVideoData()) || {};
+      } catch {
+        return;
+      }
+      const videoTitle = data.title || undefined;
+      if (data.isLive) {
+        reported = 'live';
+        reportRef.current({ kind: 'live', videoTitle });
+      } else if (!reported) {
+        reported = 'vod';
+        reportRef.current({ kind: 'vod', videoTitle });
+      }
+    };
+
+    // The API takes the frame over and rewrites its address, which drops the autoplay
+    // the server put there, so a cued stream can sit there looking like a dead one. The
+    // click that opened this frame is the activation a browser asks for; ask once more.
+    const nudge = (source) => {
+      try {
+        const state = source.getPlayerState();
+        if (state === 5 || state === -1) source.playVideo();
+      } catch {
+        // The frame is not answering; its own play control still works for the viewer.
+      }
+    };
 
     const frame = document.createElement('iframe');
     frame.className = 'live-embed';
@@ -60,29 +92,28 @@ export default function LiveEmbed({ src, title, onStatus }) {
     frame.allowFullscreen = true;
     hostRef.current.appendChild(frame);
 
-    // ended, playing, paused — the states where the video is in front of the viewer.
-    const WATCHING = [0, 1, 2];
-    const read = (target) => {
-      if (!alive || !target.getPlayerState || WATCHING.indexOf(target.getPlayerState()) < 0) return;
-      const data = (target.getVideoData && target.getVideoData()) || {};
-      const kind = data.isLive ? 'live' : 'vod';
-      if (kind === last) return;
-      last = kind;
-      reportRef.current({ kind });
-    };
-
     iframeApi()
       .then((YT) => {
         if (!alive) return;
         player = new YT.Player(frame, {
           events: {
-            onReady: (e) => read(e.target),
+            onReady: (e) => {
+              read(e.target);
+              [800, 2600].forEach((ms) => {
+                timers.push(setTimeout(() => nudge(e.target), ms));
+              });
+              // A later message from the player can carry the flag the first one did not.
+              [1500, 4000, 9000, 16000, 26000].forEach((ms) => {
+                timers.push(setTimeout(() => read(e.target), ms));
+              });
+            },
             onStateChange: (e) => read(e.target),
-            onError: () => {
+            onError: (e) => {
               if (!alive) return;
               // 100: nothing there to play. 150/101: the broadcaster turned
               // embedding off. Either way the frame cannot be trusted.
-              reportRef.current({ kind: 'blocked' });
+              reported = 'blocked';
+              reportRef.current({ kind: 'blocked', code: e.data });
             },
           },
         });
@@ -91,6 +122,7 @@ export default function LiveEmbed({ src, title, onStatus }) {
 
     return () => {
       alive = false;
+      timers.forEach(clearTimeout);
       if (player && player.destroy) player.destroy();
       else frame.remove();
     };

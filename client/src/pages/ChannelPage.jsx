@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Play, RefreshCw } from 'lucide-react';
+import { ExternalLink, Play, RefreshCw } from 'lucide-react';
 import { catalog } from '../api/client';
 import ChannelTile from '../components/ChannelTile';
 import LiveEmbed from '../components/LiveEmbed';
@@ -16,7 +16,7 @@ function statusPill(status) {
   if (!status) return null;
   const copy = {
     live: 'On air now',
-    vod: 'Latest upload',
+    vod: 'Latest published',
     blocked: 'Not embeddable here',
     unknown: 'Playing from the broadcaster',
   }[status.kind];
@@ -25,6 +25,35 @@ function statusPill(status) {
       {status.kind === 'live' && <span className="status-dot" aria-hidden="true" />}
       {copy}
     </span>
+  );
+}
+
+function ChannelLogo({ src }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return null;
+  return (
+    <img
+      className="live-logo"
+      src={src}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      aria-hidden="true"
+    />
+  );
+}
+
+/* The line under the frame, in the broadcaster's own words, so what is on screen is
+   never mistaken for something this app chose. */
+function LiveCaption({ status, channel }) {
+  return (
+    <div className="live-caption">
+      <span className="live-caption-slot">In the frame</span>
+      <span className="live-caption-title">
+        {(status && status.videoTitle) || channel.streamTitle || `${channel.name}'s own video`}
+      </span>
+    </div>
   );
 }
 
@@ -82,9 +111,19 @@ export default function ChannelPage() {
 
   const { channel, related } = data;
   const embed = mode === 'latest' ? channel.embeds?.latest : channel.embeds?.stream;
-  // A frame the broadcaster refused is not worth showing: say so and hand over the
-  // link that does work.
+  // A frame that cannot be trusted is not worth showing: say why, and hand over the
+  // address that does work.
   const refused = status && status.kind === 'blocked';
+  // 100 is the player's "nothing at this address" — an ended broadcast whose id is
+  // still the channel's newest feed entry. 101/150 is the broadcaster switching
+  // embedding off, which is a different thing to say and a different thing to offer.
+  const gone = Boolean(refused && status.code === 100);
+
+  const playLatest = () => {
+    setMode('latest');
+    setStatus(null);
+    setStarted(true);
+  };
 
   return (
     <article className="container live">
@@ -95,13 +134,16 @@ export default function ChannelPage() {
       </div>
 
       <div className="live-head">
-        <div>
-          <span className="eyebrow">
-            {channel.category} · {channel.country}
-            {channel.language ? ` · ${channel.language}` : ''}
-          </span>
-          <h1>{channel.name}</h1>
-          {channel.description && <p className="synopsis">{channel.description}</p>}
+        <div className="live-ident">
+          <ChannelLogo src={channel.logoUrl} />
+          <div className="live-ident-text">
+            <span className="eyebrow">
+              {channel.category} · {channel.country}
+              {channel.language ? ` · ${channel.language}` : ''}
+            </span>
+            <h1>{channel.name}</h1>
+            {channel.description && <p className="synopsis">{channel.description}</p>}
+          </div>
         </div>
         {channel.embeds && (
           <div className="live-status">
@@ -117,22 +159,39 @@ export default function ChannelPage() {
       {channel.embeds ? (
         <div className="live-frame">
           {started && embed && !refused ? (
-            <LiveEmbed src={embed} title={`${channel.name} on ${channel.kind === 'radio' ? 'radio' : 'television'}`} onStatus={setStatus} />
+            <>
+              <LiveEmbed src={embed} title={`${channel.name} on ${channel.kind === 'radio' ? 'radio' : 'television'}`} onStatus={setStatus} />
+              <LiveCaption status={status} channel={channel} />
+            </>
           ) : refused ? (
             <div className="live-gate">
               <div className="live-gate-copy">
-                <span className="eyebrow">Refused by the broadcaster</span>
-                <h2>{channel.name} does not allow its video to play here</h2>
+                <span className="eyebrow">{gone ? 'Nothing at that address' : 'Refused by the broadcaster'}</span>
+                <h2>{gone ? `This is not ${channel.name}'s live video any more` : `${channel.name} does not allow its video to play here`}</h2>
                 <p>
-                  Some broadcasters switch off playback inside other websites. Nothing is re-hosted to work around that, so
-                  the channel&apos;s own address is the way to watch it.
+                  {gone
+                    ? 'A broadcast ends and its address goes quiet, while the channel feed can still name it as the newest video. Its list of published videos usually plays, and its own live address shows whatever is on air now.'
+                    : "Some broadcasters switch off playback inside other websites. Nothing is re-hosted to work around that, so the channel's own address is the way to watch it."}
                 </p>
               </div>
               <div className="live-gate-actions">
-                <a className="btn btn-primary" href={channel.embeds.watch} target="_blank" rel="noopener noreferrer">
-                  <Play aria-hidden="true" />
-                  Open on the broadcaster&apos;s channel
-                </a>
+                {gone && channel.embeds.latest ? (
+                  <button type="button" className="btn btn-primary" onClick={playLatest}>
+                    <Play aria-hidden="true" />
+                    Play the latest videos
+                  </button>
+                ) : (
+                  <a className="btn btn-primary" href={channel.embeds.watch} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink aria-hidden="true" />
+                    Open on the broadcaster&apos;s channel
+                  </a>
+                )}
+                {gone && (
+                  <a className="btn" href={channel.embeds.watch} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink aria-hidden="true" />
+                    Open on the broadcaster&apos;s channel
+                  </a>
+                )}
                 <button className="btn btn-ghost" onClick={reload}>
                   <RefreshCw aria-hidden="true" />
                   Check again
@@ -149,7 +208,7 @@ export default function ChannelPage() {
                 <h2>Nothing plays until you ask</h2>
                 <p>
                   {mode === 'stream'
-                    ? `This opens the most recent video ${channel.name} has published. Once it starts, the label above the player says whether that video is broadcasting right now or is a finished upload. A channel's own continuous stream is on the broadcaster's channel.`
+                    ? `This opens the most recent video ${channel.name} has published. The label above the player reads "Latest published" and only changes to "On air now" when the player itself confirms a broadcast is in progress.`
                     : `This opens the videos ${channel.name} has published, most recent first.`}
                 </p>
               </div>
@@ -200,8 +259,9 @@ export default function ChannelPage() {
               </button>
             )}
           </div>
-          <a className="btn btn-ghost" href={channel.embeds.watch} target="_blank" rel="noopener noreferrer">
-            Open on the broadcaster&apos;s channel
+          <a className="btn" href={channel.embeds.watch} target="_blank" rel="noopener noreferrer">
+            <ExternalLink aria-hidden="true" />
+            Watch live on the broadcaster&apos;s channel
           </a>
         </div>
       )}

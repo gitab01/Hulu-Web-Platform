@@ -62,9 +62,9 @@ export default function LiveTV() {
           </h1>
         </div>
         <p className="live-note">
-          Every channel plays its broadcaster&apos;s own published video — nothing here is re-hosted. The player says
-          whether what is on screen is live at this moment or the channel&apos;s most recent upload, and every page links to
-          the broadcaster&apos;s own live address. Line-ups change without notice, so no schedule is promised.
+          Every channel plays its broadcaster&apos;s own published video — nothing here is re-hosted. Each channel page labels
+          its video as the latest the broadcaster has published, and only upgrades that to &quot;On air now&quot; when the
+          player itself confirms a broadcast is in progress. Line-ups change without notice, so no schedule is promised.
         </p>
       </header>
 
